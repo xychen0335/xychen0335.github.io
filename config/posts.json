@@ -59,7 +59,7 @@
           "求职"
         ],
         "published": true,
-        "hideInList": false,
+        "hideInList": true,
         "feature": null,
         "isTop": false
       },
@@ -116,7 +116,7 @@
           "随记"
         ],
         "published": true,
-        "hideInList": false,
+        "hideInList": true,
         "feature": null,
         "isTop": false
       },
