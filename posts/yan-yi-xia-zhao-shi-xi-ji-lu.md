@@ -34,7 +34,73 @@ isTop: false
     * text 经过 CLIP 编码后的处理，为什么 work
     * ControlNet 在 DiT 架构下表现不好，为什么
 * 手撕：
-    * 寻找数组中 K 个最大元素，要求计算复杂度低
+    * 寻找数组中第 K 个最大元素，要求计算复杂度低
+  ```Python
+    import sys
+    import random
+
+    # --- 快速排序 ---
+    def quick_select(nums, k):
+        # 第 k 大，相当于排序后索引为 len(nums) - k 的元素（升序）
+        target_idx = len(nums) - k
+    
+        def partition(left, right):
+            # 随机选择 pivot 避免最坏情况 O(N^2)
+            pivot_idx = random.randint(left, right)
+            pivot = nums[pivot_idx]
+        
+            # 把 pivot 换到最右边
+            nums[pivot_idx], nums[right] = nums[right], nums[pivot_idx]
+        
+            store_idx = left
+            for i in range(left, right):
+                if nums[i] < pivot:
+                    nums[store_idx], nums[i] = nums[i], nums[store_idx]
+                    store_idx += 1
+                
+            # 把 pivot 换回来
+            nums[store_idx], nums[right] = nums[right], nums[store_idx]
+            return store_idx
+
+        left, right = 0, len(nums) - 1
+        while left <= right:
+            pivot_index = partition(left, right)
+            if pivot_index == target_idx:
+                return nums[pivot_index]
+            elif pivot_index < target_idx:
+                left = pivot_index + 1
+            else:
+                right = pivot_index - 1
+            
+        return -1
+
+    # --- 输入输出 ---
+    if __name__ == "__main__":
+        try:
+            # 读取所有行
+            lines = sys.stdin.readlines()
+        
+            # 第一行：数组元素
+            # 第二行：k
+        
+            if len(lines) >= 2:
+                # 1. 处理数组输入
+                # strip() 去掉换行符, split() 按空格切分
+                nums_str = lines[0].strip()
+                nums = list(map(int, nums_str.split()))
+            
+                # 2. 处理 k 输入
+                k = int(lines[1].strip())
+            
+                # 3. 调用函数
+                result = quick_select(nums, k)
+            
+                # 4. 打印结果
+                print(result)
+            
+        except Exception as e:
+            pass
+  ```
     * 数学题（其实是信息论）：称重问题
 ### 感受 & 结果：涉及的大多数问题基本了解，但后面几个关于工程实践的确实没接触过，心态有些爆炸，然后手撕也寄了（只说了可以用排序做，后面提示之后再写一直被边界卡壳，面试结束复盘一眼看破，麻了...）
 ### 总结：LeetCode 还是要多刷，面试官给的手撕其实不难，但是确实经验不足，压力有点大导致没思路
@@ -61,7 +127,7 @@ isTop: false
     * 正弦位置编码和可学习位置编码的优缺点
     * 可以接受的最大文本序列是多少
     * L1 正则化和 L2 正则化
-有点无语，开头就说了自己没怎么接触语言模型，还是提问了几个相关问题...
+由于自己没怎么深入了解过大语言模型，因此一些相关问题没答上来...
 ### 感受 & 结果：体验相当糟糕，面试官专业度相当不足，并且语言组织能力很差
 ### 总结：Transformer 的八股还要多看，特别是位置编码部分，RNN、LSTM 这种比较古老的网络也要看
 
