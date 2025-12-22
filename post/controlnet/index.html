@@ -1,0 +1,202 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stable Diffusion: ControlNet | xychen&#39;s blog</title>
+<link rel="shortcut icon" href="https://xychen0335.github.io/favicon.ico?v=1766395162611">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://xychen0335.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Stable Diffusion: ControlNet | xychen&#39;s blog - Atom Feed" href="https://xychen0335.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="ControlNet (Zhang et al., 2023)
+Main Idea
+本质上是对预训练的 Stable Diffusion 模型进行微调，对于网络部分，其冻结预训练好的 SD 模型。并拷贝 SD 模型的编码器及中间层部分，之后..." />
+    <meta name="keywords" content="GAI,Diffusion" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://xychen0335.github.io">
+  <img class="avatar" src="https://xychen0335.github.io/images/avatar.png?v=1766395162611" alt="">
+  </a>
+  <h1 class="site-title">
+    xychen&#39;s blog
+  </h1>
+  <p class="site-description">
+    学习 & 科研 & 生活流水账
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/xychen0335" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+        <a href="https://m.weibo.cn/profile/7405497675" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://www.zhihu.com/people/starfeather-9" target="_blank">
+          <i class="ri-zhihu-line"></i>
+        </a>
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Stable Diffusion: ControlNet
+            </h2>
+            <div class="post-info">
+              <span>
+                2025-06-08
+              </span>
+              <span>
+                2 min read
+              </span>
+              
+                <a href="https://xychen0335.github.io/tag/OIyBxEq1Gg/" class="post-tag">
+                  # GAI
+                </a>
+              
+                <a href="https://xychen0335.github.io/tag/bUJy7C8gKO/" class="post-tag">
+                  # Diffusion
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <h1 id="controlnet-zhang-et-al-2023">ControlNet (<a href="https://openaccess.thecvf.com/content/ICCV2023/html/Zhang_Adding_Conditional_Control_to_Text-to-Image_Diffusion_Models_ICCV_2023_paper.html">Zhang et al.</a>, 2023)</h1>
+<h2 id="main-idea">Main Idea</h2>
+<p>本质上是对预训练的 Stable Diffusion 模型进行微调，对于网络部分，其冻结预训练好的 SD 模型。并拷贝 SD 模型的编码器及中间层部分，之后输入条件图像（姿态、深度、草图、分割图等）进行训练，并通过零卷积将训练好的 ControlNet 编码器拼接到原始 SD 的解码器部分。</p>
+<h2 id="zero-conv">Zero Conv</h2>
+<p>1 <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mo>×</mo></mrow><annotation encoding="application/x-tex">\times</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord">×</span></span></span></span> 1 convolution layer，其中“零”的含义为<strong>权重和偏置全部初始化为 0</strong>，因此零卷积不会给网络添加噪声，初始时，控制模块的输出为零，主模型不受影响；训练后，控制模块学会提供有意义的条件信号。在训练中会出现“突然收敛”现象。</p>
+<h2 id="cfg-resolution-weighting">CFG Resolution Weighting</h2>
+<p>将条件图像首先添加到条件输出 <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>ϵ</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">\epsilon_c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">ϵ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 中，之后根据每个块的分辨率为 SD 和 ControlNet 之间的每个连接乘以一个权重 <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>ω</mi><mi>i</mi></msub><mo>=</mo><mn>64</mn><mi mathvariant="normal">/</mi><msub><mi>h</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\omega_i=64/h_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">ω</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">6</span><span class="mord">4</span><span class="mord">/</span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（论文中设定的隐空间维度为 <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>64</mn></mrow><annotation encoding="application/x-tex">64</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">6</span><span class="mord">4</span></span></span></span> ）。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#controlnet-zhang-et-al-2023">ControlNet (Zhang et al., 2023)</a>
+<ul>
+<li><a href="#main-idea">Main Idea</a></li>
+<li><a href="#zero-conv">Zero Conv</a></li>
+<li><a href="#cfg-resolution-weighting">CFG Resolution Weighting</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://xychen0335.github.io/post/WGF&amp;DM/">
+              <h3 class="post-title">
+                从 Wasserstein 梯度流到扩散（桥）模型
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://xychen0335.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
