@@ -2,6 +2,7 @@
 title: 'SEU 生活记录（持续不定期更新）'
 date: 2024-12-10 23:30:08
 tags: [随记]
+category: 生活
 published: true
 hideInList: false
 feature: 

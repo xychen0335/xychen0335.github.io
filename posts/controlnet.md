@@ -2,6 +2,7 @@
 title: 'Stable Diffusion: ControlNet'
 date: 2025-06-08 22:24:42
 tags: [GAI,Diffusion]
+category: 科研
 published: true
 hideInList: false
 feature: 

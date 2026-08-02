@@ -2,6 +2,7 @@
 title: '从 Wasserstein 梯度流到扩散（桥）模型'
 date: 2025-06-01 21:19:31
 tags: [GAI,Diffusion,Optimal Transport]
+category: 科研
 published: true
 hideInList: false
 feature: 

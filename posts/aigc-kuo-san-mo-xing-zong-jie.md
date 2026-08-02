@@ -2,6 +2,7 @@
 title: 'AIGC——扩散模型总结'
 date: 2025-06-20 00:22:06
 tags: []
+category: 科研
 published: true
 hideInList: false
 feature: 

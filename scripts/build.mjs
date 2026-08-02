@@ -252,7 +252,15 @@ const parseMarkdownFile = (fileName, source) => {
   const slug = base.toLowerCase().replace(/&/g, '-and-').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const title = metadata.title || base;
   const content = match[2].trim();
-  const plain = content.replace(/^#{1,6}\s+/gm, '').replace(/^>\s?/gm, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
+  const plain = content
+    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+    .replace(/\$[^$\n]*\$/g, ' ')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   return {
     fileName,

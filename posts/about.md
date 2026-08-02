@@ -2,6 +2,7 @@
 title: '关于'
 date: 2024-11-27 20:00:00
 tags: []
+category: 生活
 published: true
 hideInList: true
 feature: 

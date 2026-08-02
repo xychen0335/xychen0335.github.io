@@ -2,6 +2,7 @@
 title: '保研经历（信息与通信工程）'
 date: 2024-11-29 20:03:11
 tags: [随记]
+category: 学习
 published: true
 hideInList: false
 feature: 
