@@ -16,6 +16,8 @@ npm run build
 
 构建结果在 `dist/`，可以直接作为 GitHub Pages 的发布目录。
 
+停止预览：前台运行直接按 `Ctrl+C`；后台或残留进程执行 `pkill -f scripts/dev.mjs`（仍无效时用 `lsof -nP -iTCP:4173 -sTCP:LISTEN` 找到 PID 后 `kill <PID>`）。
+
 ## 写文章
 
 在 `posts/` 目录下新增 Markdown 文件（一篇文章一个 `.md`），并使用现有的 front matter：
