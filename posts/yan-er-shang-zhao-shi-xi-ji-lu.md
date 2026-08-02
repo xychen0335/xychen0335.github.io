@@ -2,7 +2,7 @@
 title: '研二上找实习记录'
 tags: [实习,求职]
 category: 工作
-published: true
+published: false
 hideInList: false
 feature: 
 isTop: false
