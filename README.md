@@ -23,13 +23,14 @@ npm run build
 ```yaml
 ---
 title: '文章标题'
-date: 2026-08-02 12:00:00
 tags: [科研]
 published: true
 hideInList: false
 isTop: false
 ---
 ```
+
+文章日期不需要写在 front matter 里：构建时自动读取文件修改时间（Asia/Shanghai），编辑文章后日期自动更新。如要覆盖（例如保留原始发布日期），可加一行 `date: 2026-08-02 12:00:00`。
 
 `published: false` 的文章不会生成页面；`hideInList: true` 的文章仍然生成独立页面，但不会出现在首页文章列表中。
 

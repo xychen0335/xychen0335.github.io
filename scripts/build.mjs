@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +23,13 @@ const escapeHtml = (value = '') => String(value)
 
 // 数学公式需要保留 &（对齐符），否则 KaTeX 无法解析
 const escapeMath = (value = '') => String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// 文章日期默认读文件的修改时间（Asia/Shanghai），front matter 的 date 仅作可选覆盖
+const toDateString = (date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
 
 const parseScalar = (value) => {
   const trimmed = value.trim();
@@ -236,7 +243,7 @@ const markdownToHtml = (markdown) => {
   return output.join('\n');
 };
 
-const parseMarkdownFile = (fileName, source) => {
+const parseMarkdownFile = (fileName, source, modified) => {
   const match = source.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
   if (!match) return null;
   const metadata = {};
@@ -257,7 +264,7 @@ const parseMarkdownFile = (fileName, source) => {
     fileName,
     slug,
     title,
-    date: String(metadata.date || '').slice(0, 10),
+    date: String(metadata.date || toDateString(modified)).slice(0, 10),
     tags: metadata.tags || [],
     category: metadata.category || categoryFor(title, metadata.tags || []),
     published: metadata.published !== false,
@@ -379,7 +386,11 @@ export async function build() {
   await mkdir(path.join(dist, 'posts'), { recursive: true });
 
   const files = (await readdir(postsDir)).filter((file) => file.endsWith('.md'));
-  const parsed = (await Promise.all(files.map(async (file) => parseMarkdownFile(file, await readFile(path.join(postsDir, file), 'utf8'))))).filter(Boolean);
+  const parsed = (await Promise.all(files.map(async (file) => {
+    const source = await readFile(path.join(postsDir, file), 'utf8');
+    const { mtime } = await stat(path.join(postsDir, file));
+    return parseMarkdownFile(file, source, mtime);
+  }))).filter(Boolean);
   const published = parsed.filter((post) => post.published).sort((a, b) => String(b.date).localeCompare(String(a.date)));
   const about = published.find((post) => post.isAbout);
   const visible = published.filter((post) => !post.hideInList && !post.isAbout);

@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,7 +10,13 @@ const target = process.argv[3];
 
 const slugify = (name) => name.toLowerCase().replace(/&/g, '-and-').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-const parse = (fileName, source) => {
+const toDateString = (date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
+
+const parse = (fileName, source, modified) => {
   const match = source.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
   if (!match) return null;
   const fields = {};
@@ -19,12 +25,16 @@ const parse = (fileName, source) => {
     if (index === -1) return;
     fields[line.slice(0, index).trim()] = line.slice(index + 1).trim().replace(/^['"]|['"]$/g, '');
   });
-  return { fileName, slug: slugify(path.basename(fileName, '.md')), title: fields.title || fileName, date: fields.date || '', published: fields.published !== 'false', hideInList: fields.hideInList === 'true' };
+  return { fileName, slug: slugify(path.basename(fileName, '.md')), title: fields.title || fileName, date: fields.date ? fields.date.slice(0, 10) : toDateString(modified), published: fields.published !== 'false', hideInList: fields.hideInList === 'true' };
 };
 
 const posts = async () => {
   const files = (await readdir(postsDir)).filter((file) => file.endsWith('.md'));
-  const items = await Promise.all(files.map(async (file) => parse(file, await readFile(path.join(postsDir, file), 'utf8'))));
+  const items = await Promise.all(files.map(async (file) => {
+    const source = await readFile(path.join(postsDir, file), 'utf8');
+    const { mtime } = await stat(path.join(postsDir, file));
+    return parse(file, source, mtime);
+  }));
   return items.filter(Boolean);
 };
 
