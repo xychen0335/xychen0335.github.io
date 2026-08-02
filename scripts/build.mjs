@@ -252,15 +252,6 @@ const parseMarkdownFile = (fileName, source) => {
   const slug = base.toLowerCase().replace(/&/g, '-and-').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const title = metadata.title || base;
   const content = match[2].trim();
-  const plain = content
-    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
-    .replace(/\$[^$\n]*\$/g, ' ')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^>\s?/gm, '')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[*_`~]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 
   return {
     fileName,
@@ -274,7 +265,6 @@ const parseMarkdownFile = (fileName, source) => {
     isAbout: slug === 'about',
     content,
     html: markdownToHtml(content),
-    excerpt: plain.length > 118 ? `${plain.slice(0, 118)}…` : plain,
   };
 };
 
@@ -330,11 +320,10 @@ const documentHtml = ({ title, description, body, prefix = '', math = false }) =
 </html>`;
 
 const cardHtml = (post, featured = false) => {
-  const searchText = escapeHtml(`${post.title} ${post.excerpt} ${post.category} ${post.tags.join(' ')}`.toLowerCase());
+  const searchText = escapeHtml(`${post.title} ${post.category} ${post.tags.join(' ')}`.toLowerCase());
   return `<article class="post-card${featured ? ' is-featured' : ''}" data-post-card data-category="${escapeHtml(post.category)}" data-search="${searchText}">
     <div class="post-meta"><span>${escapeHtml(formatDate(post.date))}</span><span>${escapeHtml(post.category)}</span></div>
     <h3><a href="posts/${post.slug}.html">${escapeHtml(post.title)}</a></h3>
-    <p class="post-excerpt">${escapeHtml(post.excerpt)}</p>
     <div class="card-footer"><div class="tag-row">${tagsHtml(post)}</div><a class="card-arrow" href="posts/${post.slug}.html" aria-label="阅读 ${escapeHtml(post.title)}">↗</a></div>
   </article>`;
 };
@@ -369,12 +358,11 @@ const buildArticle = (post) => {
   const body = `<main class="article-wrap">
     <div class="article-kicker"><span class="eyebrow">${escapeHtml(post.category)}</span><span class="post-meta">${escapeHtml(formatDate(post.date))}</span></div>
     <h1 class="article-title">${escapeHtml(post.title)}</h1>
-    <p class="article-deck">${escapeHtml(post.excerpt)}</p>
     <div class="article-divider"></div>
     <article class="article-body">${post.html}</article>
     <a class="back-link" href="../index.html#posts">← 返回文章列表</a>
   </main>`;
-  return documentHtml({ title: post.title, description: post.excerpt, body, prefix: '../', math: true });
+  return documentHtml({ title: post.title, description: site.description, body, prefix: '../', math: true });
 };
 
 const buildAbout = (post) => {
