@@ -346,7 +346,7 @@ const buildIndex = (posts, about) => {
     <section class="hero">
       <div>
         <div class="eyebrow">xychen 的日常记录</div>
-        <h1>答案还在路上，<br><em>先把过程写下来。</em></h1>
+        <h1>且行且记，<br><em>莫问西东。</em></h1>
         <p class="hero-copy">这里是 XYCHEN 的个人小站。记录工作、学习和生活，也记录那些在路上慢慢想清楚的事情。</p>
         <div class="hero-actions"><a class="button" href="#posts">浏览文章 <span>↘</span></a><a class="text-link" href="posts/${about ? about.slug : 'about'}.html">认识一下 →</a></div>
       </div>
