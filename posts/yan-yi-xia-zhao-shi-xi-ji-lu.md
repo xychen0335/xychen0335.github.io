@@ -3,7 +3,7 @@ title: '找实习记录'
 date: 2025-06-10 20:19:29
 tags: [求职]
 published: true
-hideInList: true
+hideInList: false
 feature: 
 isTop: false
 ---

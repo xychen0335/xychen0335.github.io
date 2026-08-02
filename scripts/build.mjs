@@ -39,12 +39,14 @@ const parseList = (value) => {
   return trimmed.split(',').map((item) => String(parseScalar(item)).trim()).filter(Boolean);
 };
 
+const categoryOrder = ['工作', '科研', '学习', '生活'];
+
 const categoryFor = (title, tags) => {
   const text = `${title} ${tags.join(' ')}`.toLowerCase();
-  if (/科研|投稿|wcl|扩散|controlnet|wgf|dm|aigc/.test(text)) return '科研';
-  if (/刷题|保研|通信工程/.test(text)) return '学习';
-  if (/生活|实习|演义|seu/.test(text)) return '生活';
-  return '随笔';
+  if (/科研|投稿|论文|wcl|扩散|controlnet|wgf|dm|aigc/.test(text)) return '科研';
+  if (/实习|工作|招聘|秋招|春招|面经/.test(text)) return '工作';
+  if (/刷题|保研|通信工程|课程|学习/.test(text)) return '学习';
+  return '生活';
 };
 
 const inlineMarkdown = (value) => {
@@ -258,7 +260,7 @@ const parseMarkdownFile = (fileName, source) => {
     title,
     date: String(metadata.date || '').slice(0, 10),
     tags: metadata.tags || [],
-    category: categoryFor(title, metadata.tags || []),
+    category: metadata.category || categoryFor(title, metadata.tags || []),
     published: metadata.published !== false,
     hideInList: metadata.hideInList === true,
     isAbout: slug === 'about',
@@ -331,7 +333,7 @@ const cardHtml = (post, featured = false) => {
 
 const buildIndex = (posts, about) => {
   const cards = posts.map((post, index) => cardHtml(post, index === 0)).join('\n');
-  const categories = [...new Set(posts.map((post) => post.category))];
+  const categories = [...new Set(posts.map((post) => post.category))].sort((a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b));
   const filters = ['全部', ...categories].map((category) => {
     const value = category === '全部' ? 'all' : category;
     return `<button class="filter-button${category === '全部' ? ' is-active' : ''}" type="button" data-filter="${value}" aria-pressed="${category === '全部' ? 'true' : 'false'}">${category}</button>`;
