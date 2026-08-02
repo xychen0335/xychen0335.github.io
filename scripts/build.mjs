@@ -345,9 +345,9 @@ const buildIndex = (posts, about) => {
   const body = `<main>
     <section class="hero">
       <div>
-        <div class="eyebrow">南京 · 研究生生活记录</div>
-        <h1>把研究、生活，<br><em>还有没想明白的事</em><br>写下来。</h1>
-        <p class="hero-copy">这里是 XYCHEN 的个人小站。记录无线通信、代码、校园生活，也记录那些在路上慢慢想清楚的事情。</p>
+        <div class="eyebrow">xychen 的日常记录</div>
+        <h1>把工作、学习和生活，<br><em>还有没想明白的事</em><br>写下来。</h1>
+        <p class="hero-copy">这里是 XYCHEN 的个人小站。记录工作、学习和生活，也记录那些在路上慢慢想清楚的事情。</p>
         <div class="hero-actions"><a class="button" href="#posts">浏览文章 <span>↘</span></a><a class="text-link" href="posts/${about ? about.slug : 'about'}.html">认识一下 →</a></div>
       </div>
       <aside class="hero-note"><span class="hero-note-label">A small archive</span><p>“有空会更新自己的一些浅薄见解。”</p><small>01 — 2026</small></aside>
