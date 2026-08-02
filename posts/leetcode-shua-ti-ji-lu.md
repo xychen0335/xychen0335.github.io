@@ -2,7 +2,7 @@
 title: 'LeetCode 刷题记录'
 date: 2025-06-12 03:05:23
 tags: [求职]
-category: 学习
+category: 工作
 published: true
 hideInList: false
 feature: 
