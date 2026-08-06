@@ -297,7 +297,7 @@ const mathAssets = () => `
     });
   </script>`;
 
-const documentHtml = ({ title, description, body, prefix = '', math = false }) => `<!doctype html>
+const documentHtml = ({ title, description, body, prefix = '', math = false, bodyClass = '' }) => `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -308,7 +308,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false }) =
   <link rel="stylesheet" href="${prefix}assets/styles.css">
   ${math ? mathAssets() : ''}
 </head>
-<body>
+<body class="${bodyClass}">
   <div class="page-shell">
     <header class="site-header">
       <a class="brand-lockup" href="${prefix}index.html" aria-label="返回首页"><span class="header-mark">陈</span><span class="wordmark">${site.shortName}</span></a>
@@ -376,7 +376,7 @@ const buildArticle = (post) => {
     <article class="article-body">${post.html}</article>
     <a class="back-link" href="../index.html#posts">← 返回文章列表</a>
   </main>`;
-  return documentHtml({ title: post.title, description: site.description, body, prefix: '../', math: true });
+  return documentHtml({ title: post.title, description: site.description, body, prefix: '../', math: true, bodyClass: 'article-page' });
 };
 
 const buildAbout = (post) => {
@@ -404,6 +404,7 @@ export async function build() {
 
   await copyFile(path.join(root, 'src/styles.css'), path.join(dist, 'assets/styles.css'));
   await copyFile(path.join(root, 'src/assets/milkyway-1.jpg'), path.join(dist, 'assets/milkyway-1.jpg'));
+  await copyFile(path.join(root, 'src/assets/stars-1.jpg'), path.join(dist, 'assets/stars-1.jpg'));
   await copyFile(path.join(root, 'src/app.js'), path.join(dist, 'assets/app.js'));
   await writeFile(path.join(dist, 'index.html'), buildIndex(visible, about), 'utf8');
   await writeFile(path.join(dist, '404.html'), buildIndex(visible, about), 'utf8');
