@@ -43,7 +43,7 @@ button, input { font: inherit; }
 .brand-lockup { display: flex; align-items: center; }
 
 .hero { position: relative; margin: 0 calc(50% - 50vw); width: 100vw; min-height: 72vh; display: flex; align-items: flex-end; padding: 0 max(24px, calc((100vw - 1180px) / 2)) 54px; overflow: hidden; }
-.hero::before { content: ""; position: absolute; inset: 0; background-image: url('milkyway-1.jpg'); background-size: cover; background-position: center 30%; }
+.hero::before { content: ""; position: absolute; inset: 0; background-color: #0a0e2a; background-image: url('milkyway-1.jpg'); background-size: cover; background-position: center 30%; }
 .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,7,15,.55) 0%, rgba(5,7,15,.18) 42%, rgba(5,7,15,.78) 74%, #05070f 100%); }
 .hero .inner { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(280px, .82fr); gap: 70px; align-items: end; width: min(1180px, 100%); }
 .hero-stars { position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image:
