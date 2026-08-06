@@ -404,7 +404,7 @@ export async function build() {
 
   await copyFile(path.join(root, 'src/styles.css'), path.join(dist, 'assets/styles.css'));
   await copyFile(path.join(root, 'src/assets/milkyway-1.jpg'), path.join(dist, 'assets/milkyway-1.jpg'));
-  await copyFile(path.join(root, 'src/assets/stars-1.jpg'), path.join(dist, 'assets/stars-1.jpg'));
+  await copyFile(path.join(root, 'src/assets/stars-2.jpg'), path.join(dist, 'assets/stars-2.jpg'));
   await copyFile(path.join(root, 'src/app.js'), path.join(dist, 'assets/app.js'));
   await writeFile(path.join(dist, 'index.html'), buildIndex(visible, about), 'utf8');
   await writeFile(path.join(dist, '404.html'), buildIndex(visible, about), 'utf8');
