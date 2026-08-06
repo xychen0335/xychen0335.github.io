@@ -303,7 +303,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false }) =
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="${escapeHtml(description)}">
-  <meta name="theme-color" content="#1e6b67">
+  <meta name="theme-color" content="#05070f">
   <title>${escapeHtml(title)} · ${escapeHtml(site.name)}</title>
   <link rel="stylesheet" href="${prefix}assets/styles.css">
   ${math ? mathAssets() : ''}
@@ -344,6 +344,12 @@ const buildIndex = (posts, about) => {
   }).join('');
   const body = `<main>
     <section class="hero">
+      <div class="hero-stars" aria-hidden="true"></div>
+      <span class="hero-star" style="top:14%;left:18%;background:#ffe9b0;box-shadow:0 0 16px 4px rgba(255,233,176,.85)" aria-hidden="true"></span>
+      <span class="hero-star" style="top:26%;right:24%;background:#cfe0ff;box-shadow:0 0 14px 4px rgba(207,224,255,.8);animation-delay:1.2s" aria-hidden="true"></span>
+      <span class="hero-star" style="top:40%;left:52%;background:#fff;box-shadow:0 0 12px 3px rgba(255,255,255,.85);animation-delay:.6s" aria-hidden="true"></span>
+      <div class="shooting-star" aria-hidden="true"></div>
+      <div class="inner">
       <div>
         <div class="eyebrow">xychen 的日常记录</div>
         <h1>且行且记，<br><em>莫问西东。</em></h1>
@@ -351,6 +357,7 @@ const buildIndex = (posts, about) => {
         <div class="hero-actions"><a class="button" href="#posts">浏览文章 <span>↘</span></a><a class="text-link" href="posts/${about ? about.slug : 'about'}.html">认识一下 →</a></div>
       </div>
       <aside class="hero-note"><span class="hero-note-label">A small archive</span><p>“有空会更新自己的一些浅薄见解。”</p><small>01 — 2026</small></aside>
+      </div>
     </section>
     <section id="posts" aria-labelledby="posts-title">
       <div class="section-heading"><span class="section-label">Archive / ${String(posts.length).padStart(2, '0')} entries</span><h2 id="posts-title">最近写下的东西</h2></div>
@@ -396,6 +403,7 @@ export async function build() {
   const visible = published.filter((post) => !post.hideInList && !post.isAbout);
 
   await copyFile(path.join(root, 'src/styles.css'), path.join(dist, 'assets/styles.css'));
+  await copyFile(path.join(root, 'src/assets/milkyway-1.jpg'), path.join(dist, 'assets/milkyway-1.jpg'));
   await copyFile(path.join(root, 'src/app.js'), path.join(dist, 'assets/app.js'));
   await writeFile(path.join(dist, 'index.html'), buildIndex(visible, about), 'utf8');
   await writeFile(path.join(dist, '404.html'), buildIndex(visible, about), 'utf8');
