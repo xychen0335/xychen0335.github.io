@@ -303,7 +303,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false, bod
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="${escapeHtml(description)}">
-  <meta name="theme-color" content="#05070f">
+  <meta name="theme-color" content="#f7f4ef">
   <title>${escapeHtml(title)} · ${escapeHtml(site.name)}</title>
   <link rel="stylesheet" href="${prefix}assets/styles.css">
   ${math ? mathAssets() : ''}
@@ -405,6 +405,7 @@ export async function build() {
   await copyFile(path.join(root, 'src/styles.css'), path.join(dist, 'assets/styles.css'));
   await copyFile(path.join(root, 'src/assets/milkyway-1.jpg'), path.join(dist, 'assets/milkyway-1.jpg'));
   await copyFile(path.join(root, 'src/assets/stars-2.jpg'), path.join(dist, 'assets/stars-2.jpg'));
+  await copyFile(path.join(root, 'src/assets/bocchi-hero.jpg'), path.join(dist, 'assets/bocchi-hero.jpg'));
   await copyFile(path.join(root, 'src/app.js'), path.join(dist, 'assets/app.js'));
   await writeFile(path.join(dist, 'index.html'), buildIndex(visible, about), 'utf8');
   await writeFile(path.join(dist, '404.html'), buildIndex(visible, about), 'utf8');
