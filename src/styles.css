@@ -134,27 +134,27 @@ button, input { font: inherit; }
 .about-stamp { display: grid; width: 165px; height: 165px; border: 1px solid var(--accent); color: var(--accent-strong); place-items: center; font-family: var(--mono); font-size: 13px; line-height: 1.4; text-align: center; transform: rotate(4deg); box-shadow: 0 0 24px rgba(224,138,157,.14); }
 .about-content { position: relative; }
 .about-content .article-body { max-width: 700px; }
-/* 代码窗口（mac 风格）：浅色面板 + 三色圆点标题条 */
-.article-body .code-window { margin: 1.6em 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #faf7f1; box-shadow: 0 10px 30px rgba(140,120,160,.1); }
-.code-window-bar { position: relative; display: flex; gap: 8px; align-items: center; height: 34px; padding: 0 14px; background: linear-gradient(180deg, #fffdfa, #f1ece3); border-bottom: 1px solid var(--line-soft); }
-.dot { position: relative; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.09); }
-.dot::after { content: ""; position: absolute; inset: 1px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.4), transparent 55%); }
+/* 代码窗口（mac 风格）：墨蓝面板 + 三色圆点标题条，与浅色正文形成对比 */
+.article-body .code-window { margin: 1.6em 0; overflow: hidden; border: 1px solid rgba(110,150,205,.32); border-radius: 10px; background: #243247; box-shadow: 0 12px 32px rgba(90,120,180,.2); }
+.code-window-bar { position: relative; display: flex; gap: 8px; align-items: center; height: 34px; padding: 0 14px; background: linear-gradient(180deg, #2d3c55, #26344a); border-bottom: 1px solid rgba(110,150,205,.22); }
+.dot { position: relative; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+.dot::after { content: ""; position: absolute; inset: 1px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.35), transparent 55%); }
 .dot-red { background: #ff5f57; }
 .dot-yellow { background: #febc2e; }
 .dot-green { background: #28c840; }
-.code-window-label { position: absolute; left: 50%; color: var(--muted); font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: lowercase; transform: translateX(-50%); }
+.code-window-label { position: absolute; left: 50%; color: #9fb0c8; font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: lowercase; transform: translateX(-50%); }
 .article-body .code-window pre { margin: 0; padding: 16px 20px 18px; overflow-x: auto; background: transparent; border: 0; font-size: 13.5px; line-height: 1.75; }
-.article-body .code-window code { padding: 0; color: #3a4254; background: transparent; font-size: inherit; }
+.article-body .code-window code { padding: 0; color: #e8ecf4; background: transparent; font-size: inherit; }
 
-/* 语法高亮 token 配色（贴合站点浅色板） */
-.code-window code .hljs-comment, .code-window code .hljs-quote { color: #8a93a6; font-style: italic; }
-.code-window code .hljs-keyword, .code-window code .hljs-selector-tag, .code-window code .hljs-literal, .code-window code .hljs-name, .code-window code .hljs-doctag { color: #c4556f; }
-.code-window code .hljs-string, .code-window code .hljs-regexp, .code-window code .hljs-addition { color: #2f8f8f; }
-.code-window code .hljs-number, .code-window code .hljs-symbol, .code-window code .hljs-bullet { color: #c98a2d; }
-.code-window code .hljs-title, .code-window code .hljs-title.function_, .code-window code .hljs-section, .code-window code .hljs-selector-id, .code-window code .hljs-selector-class { color: #7a5f9e; }
-.code-window code .hljs-type, .code-window code .hljs-title.class_, .code-window code .hljs-built_in { color: #4d7fb8; }
-.code-window code .hljs-attribute, .code-window code .hljs-variable, .code-window code .hljs-template-variable, .code-window code .hljs-params { color: #6b7488; }
-.code-window code .hljs-meta, .code-window code .hljs-deletion { color: #9aa1b0; }
+/* 语法高亮 token 配色（靛蓝底 · 亮色系） */
+.code-window code .hljs-comment, .code-window code .hljs-quote { color: #8aa0c0; font-style: italic; }
+.code-window code .hljs-keyword, .code-window code .hljs-selector-tag, .code-window code .hljs-literal, .code-window code .hljs-name, .code-window code .hljs-doctag { color: #f0a0b4; }
+.code-window code .hljs-string, .code-window code .hljs-regexp, .code-window code .hljs-addition { color: #8adcd0; }
+.code-window code .hljs-number, .code-window code .hljs-symbol, .code-window code .hljs-bullet { color: #ecc070; }
+.code-window code .hljs-title, .code-window code .hljs-title.function_, .code-window code .hljs-section, .code-window code .hljs-selector-id, .code-window code .hljs-selector-class { color: #ccb3ee; }
+.code-window code .hljs-type, .code-window code .hljs-title.class_, .code-window code .hljs-built_in { color: #8ab4ff; }
+.code-window code .hljs-attribute, .code-window code .hljs-variable, .code-window code .hljs-template-variable, .code-window code .hljs-params { color: #b4bcd0; }
+.code-window code .hljs-meta, .code-window code .hljs-deletion { color: #8aa0c0; }
 .code-window code .hljs-emphasis { font-style: italic; }
 .code-window code .hljs-strong { font-weight: 700; }
 .article-body .table-wrap { margin: 1.7em 0; overflow-x: auto; }

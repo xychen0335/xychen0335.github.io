@@ -390,7 +390,7 @@ const buildIndex = (posts, about) => {
         <p class="hero-copy">这里是 XYCHEN 的个人小站。记录工作、学习和生活，也记录那些在路上慢慢想清楚的事情。</p>
         <div class="hero-actions"><a class="button" href="#posts">浏览文章 <span>↘</span></a><a class="text-link" href="posts/${about ? about.slug : 'about'}.html">认识一下 →</a></div>
       </div>
-      <aside class="hero-note"><span class="hero-note-label">A small archive</span><p>“有空会更新自己的一些浅薄见解。”</p><small>01 — 2026</small></aside>
+      <aside class="hero-note"><span class="hero-note-label">A small archive</span><p>“光荣在于平淡，艰巨在于漫长。”</p><small>01 — 2026</small></aside>
       </div>
     </section>
     <section id="posts" aria-labelledby="posts-title">
