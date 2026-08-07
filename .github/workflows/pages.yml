@@ -36,6 +36,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - name: Install dependencies
+        run: npm ci
       - name: Build static site
         run: npm run build
       - name: Configure Pages

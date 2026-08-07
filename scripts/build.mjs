@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import hljs from 'highlight.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
@@ -23,6 +24,27 @@ const escapeHtml = (value = '') => String(value)
 
 // 数学公式需要保留 &（对齐符），否则 KaTeX 无法解析
 const escapeMath = (value = '') => String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// 常见语言白名单：自动检测只在白名单内挑，避免短代码块被误判成冷门语言（如 vim/maxima）
+const AUTO_LANGS = ['python', 'javascript', 'typescript', 'bash', 'shell', 'json', 'xml', 'css', 'markdown', 'sql', 'yaml', 'java', 'cpp', 'c', 'go', 'rust', 'ruby', 'php'];
+// 自动检测置信度下限：低于该值认为"没把握"，回退为纯文本，避免错误着色
+const AUTO_MIN_RELEVANCE = 15;
+
+// 代码语法高亮：按围栏声明的语言着色，未声明或语言未知时在常见语言内自动检测，把握不足或异常回退纯文本
+const highlightCode = (code, lang) => {
+  try {
+    if (lang && hljs.getLanguage(lang)) {
+      return { html: hljs.highlight(code, { language: lang }).value, language: lang };
+    }
+    const auto = hljs.highlightAuto(code, AUTO_LANGS);
+    if (auto.language && auto.relevance >= AUTO_MIN_RELEVANCE) {
+      return { html: auto.value, language: auto.language };
+    }
+    return { html: escapeHtml(code), language: '' };
+  } catch {
+    return { html: escapeHtml(code), language: '' };
+  }
+};
 
 // 文章日期默认读文件的修改时间（Asia/Shanghai），front matter 的 date 仅作可选覆盖
 const toDateString = (date) => {
@@ -174,11 +196,23 @@ const markdownToHtml = (markdown) => {
         code.push(lines[j]);
         j += 1;
       }
-      const lang = fence[2] ? ` class="language-${escapeHtml(fence[2])}"` : '';
       // 去掉代码块的公共缩进
       const indents = code.filter((line) => line.trim()).map((line) => line.match(/^\s*/)[0].length);
       const common = indents.length ? Math.min(...indents) : 0;
-      output.push(`<pre><code${lang}>${escapeHtml(code.map((line) => line.slice(common)).join('\n'))}</code></pre>`);
+      const rawCode = code.map((line) => line.slice(common)).join('\n');
+      const lang = fence[2] || '';
+      const { html, language } = highlightCode(rawCode, lang);
+      const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+      const label = language ? escapeHtml(language) : 'text';
+      output.push(
+        `<div class="code-window">` +
+          `<div class="code-window-bar" aria-hidden="true">` +
+            `<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>` +
+            `<span class="code-window-label">${label}</span>` +
+          `</div>` +
+          `<pre><code${langClass}>${html}</code></pre>` +
+        `</div>`
+      );
       i = j;
       continue;
     }

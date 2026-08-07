@@ -17,7 +17,7 @@ isTop: false
 ## 双指针
 常用于遍历，典型应用如反转字符串、链表
 例子：
-  ```
+  ```python
   # 接雨水--方法 1
   class Solution:
     def trap(self, height: List[int]) -> int:
@@ -38,7 +38,7 @@ isTop: false
             ans += min(pre, suf) - h
         return ans
   ```
-  ```
+  ```python
   # 接雨水--方法 2 双指针
   class Solution:
     def trap(self, height: List[int]) -> int:
