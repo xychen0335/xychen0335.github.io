@@ -299,6 +299,7 @@ const parseMarkdownFile = (fileName, source, modified) => {
     slug,
     title,
     date: String(metadata.date || toDateString(modified)).slice(0, 10),
+    updated: metadata.date ? String(toDateString(modified)).slice(0, 10) : '',
     tags: metadata.tags || [],
     category: metadata.category || categoryFor(title, metadata.tags || []),
     published: metadata.published !== false,
@@ -403,8 +404,10 @@ const buildIndex = (posts, about) => {
 };
 
 const buildArticle = (post) => {
+  const dates = [`<span>首发 ${escapeHtml(formatDate(post.date))}</span>`];
+  if (post.updated && post.updated !== post.date) dates.push(`<span>最后编辑 ${escapeHtml(formatDate(post.updated))}</span>`);
   const body = `<main class="article-wrap">
-    <div class="article-kicker"><span class="eyebrow">${escapeHtml(post.category)}</span><span class="post-meta">${escapeHtml(formatDate(post.date))}</span></div>
+    <div class="article-kicker"><span class="eyebrow">${escapeHtml(post.category)}</span><span class="post-meta">${dates.join('')}</span></div>
     <h1 class="article-title">${escapeHtml(post.title)}</h1>
     <div class="article-divider"></div>
     <article class="article-body">${post.html}</article>
