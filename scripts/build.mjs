@@ -332,6 +332,43 @@ const mathAssets = () => `
     });
   </script>`;
 
+// 主题判定 + 切换：在 <head> 首帧渲染前设置 data-theme，避免「先亮后暗」闪烁。
+// 状态三态：localStorage 有 'light'/'dark' 用之，否则跟随系统 prefers-color-scheme。
+// 按钮点击后写入 localStorage，此后不再跟随系统（两态行为）。
+const themeScript = () => `<script>
+  (function () {
+    var stored = null;
+    try { stored = localStorage.getItem('theme'); } catch (e) {}
+    var theme = stored === 'light' || stored === 'dark'
+      ? stored
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    function paint() {
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#1a1713' : '#f7f4ef');
+      var btn = document.querySelector('[data-theme-toggle]');
+      if (btn) {
+        var icon = btn.querySelector('[data-theme-icon]');
+        if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
+        btn.setAttribute('aria-label', theme === 'dark' ? '切换到日间模式' : '切换到夜间模式');
+        btn.setAttribute('title', theme === 'dark' ? '切换到日间模式' : '切换到夜间模式');
+      }
+    }
+    paint();
+    document.addEventListener('DOMContentLoaded', function () {
+      paint();
+      var btn = document.querySelector('[data-theme-toggle]');
+      if (btn) btn.addEventListener('click', function () {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('theme', theme); } catch (e) {}
+        root.setAttribute('data-theme', theme);
+        paint();
+      });
+    });
+  })();
+</script>`;
+
 const documentHtml = ({ title, description, body, prefix = '', math = false, bodyClass = '' }) => `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -340,6 +377,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false, bod
   <meta name="description" content="${escapeHtml(description)}">
   <meta name="theme-color" content="#f7f4ef">
   <title>${escapeHtml(title)} · ${escapeHtml(site.name)}</title>
+  ${themeScript()}
   <link rel="stylesheet" href="${prefix}assets/styles.css">
   ${math ? mathAssets() : ''}
 </head>
@@ -350,6 +388,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false, bod
       <nav class="nav-links" aria-label="主导航">
         <a href="${prefix}index.html#posts">文章</a>
         <a href="${prefix}posts/about.html" ${title.startsWith('关于') ? 'aria-current="page"' : ''}>关于</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换到夜间模式" title="切换到夜间模式"><span data-theme-icon aria-hidden="true">☀</span></button>
       </nav>
     </header>
     ${body}
