@@ -59,4 +59,23 @@ npm run post:delete -- <slug> --yes
 https://xychen0335.github.io/
 ```
 
-`.github/workflows/pages.yml` 已经准备好自动构建配置。当前不会触发发布；将代码推送到 `main` 并在 GitHub 的 Pages 设置中选择 GitHub Actions 后，后续推送才会部署。
+`.github/workflows/pages.yml` 已经准备好自动构建配置。将代码推送到 `main` 并在 GitHub 的 Pages 设置中选择 GitHub Actions 后，推送会自动部署。
+
+### 手动触发部署
+
+正常情况下推送到 `main` 会自动构建并部署。如果推送后迟迟没有生效（例如 GitHub 服务故障期间 push 事件可能被丢弃、不触发工作流），可以手动触发一次：
+
+```bash
+gh workflow run pages.yml --ref main
+gh run watch
+```
+
+`workflow_dispatch` 不依赖 push 事件，即使 push 触发失灵也能正常部署。跑完后可确认线上是否更新：
+
+```bash
+curl -sI https://xychen0335.github.io/ | grep -i last-modified
+```
+
+### 定时自愈
+
+`pages.yml` 内置了定时任务（每天北京时间 12:00 与 00:00 各构建一次最新 `main`），即使某次 push 事件被 GitHub 丢弃，站点最迟也会在下一个定时点自动收敛到最新版本，无需人工介入。

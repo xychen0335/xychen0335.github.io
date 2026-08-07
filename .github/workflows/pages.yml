@@ -2,6 +2,9 @@ name: Deploy XYCHEN blog to GitHub Pages
 
 on:
   workflow_dispatch:
+  schedule:
+    # 定时自愈：每天部署最新 main，避免 push 事件被丢弃时站点长期停留在旧版本
+    - cron: '0 4,16 * * *'
   push:
     branches: [main]
 
