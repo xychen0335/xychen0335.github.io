@@ -18,7 +18,7 @@ isTop: false
 从算法工程师的角度来看，现如今复现一篇论文已并不困难，这项工作的目的不是期望 Agent 可以替代这一环节，而是希望 Agent 可以替我们留下一篇论文最核心的思想，沉淀出相关的产物和可复用的模版。对于这个任务，其真实链路大概如下：
 
 ```text
-论文分析 → 仓库发现 → 流水线生成 → 环境搭建 → baseline 复现
+论文分析 → 仓库发现 → 数据预处理 → 编写代码及脚本 → baseline 复现
         → 指标评估 → 优化迭代 → 收尾报告
 ```
 
@@ -84,7 +84,7 @@ agent = Agent(
 
 为了协调各阶段，Agent 通过工具维护一个状态机（3 阶段）。状态被写入到当前 session 的 `RUN_STATE.json` 中，便于各阶段的交接和恢复。
 
-## 4. Skills 编排：把知识从模型里拿出来
+## 4. Agentic Workflow 与 Skills 编排：把知识从模型里拿出来
 
 ### 4.1 System Prompt
 
@@ -92,7 +92,7 @@ agent = Agent(
 
 ### 4.2 AgentScope 的技能读取
 
-不同于 Agent 应用常见的多智能体编排工作流的形式，自动论文复现很难设计成确定的工作流，因此推进链条基本由单 Agent 配合一系列技能来实现。这大大降低了成本并且不再需要维护 Agent 间的通信。**Agent 通过 AgentScope 内置的 SkillViewer 工具按需检索**。
+为了保证自动论文复现过程有序、可维护，系统将复现流程拆分为一组阶段性 Skills。每个 Skill 封装特定阶段的操作规范、工具使用方式、输入输出契约以及下一阶段路由规则。**Agent 通过 AgentScope 内置的 SkillViewer 工具按需检索**。
 
 ```python
 toolkit = Toolkit(
@@ -113,8 +113,7 @@ toolkit = Toolkit(
 - 各阶段技能均声明线性地状态转移，配合状态机自然地衔接，形成一条严密的流水线，大致如下：
 
 ```text
-paper-ingest → repo-discovery → entrypoint-authoring → reproduce-baseline
-             → auto-search-loop → finalize
+paper-ingest → repo-discovery → data-preprocessing → entrypoint-authoring → reproduce-baseline → auto-search-loop → finalize
 ```
 
 每个 SKILL.md 只说下面几件事：**进入这个阶段做什么、参考什么、产物是什么、哪些事绝对不能做**。把容易幻觉的地方配合工具变成硬约束，使 Agent 在探索任务的同时也拥有我们希望的稳定性。
