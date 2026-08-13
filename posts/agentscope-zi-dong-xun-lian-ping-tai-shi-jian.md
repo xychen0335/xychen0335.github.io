@@ -88,7 +88,11 @@ agent = Agent(
 
 ### 4.1 System Prompt
 
-赋予 Agent 复现助手的人格，告知其可以使用的工具，并明确工作方式和执行边界。
+赋予 Agent 复现助手的人格，告知其可以使用的工具，并明确工作方式和执行边界。其分为三部分：
+
+- 通用 SOUL.md：定义复现助手的运行环境、工作目录、审批方式和通用工具边界。
+- reproduction_assistant.md：补充复现场景下的行为约束。
+- 会话上下文：agent_sessions.metadata 和 workspace 的路径约束。
 
 ### 4.2 AgentScope 的技能读取
 
