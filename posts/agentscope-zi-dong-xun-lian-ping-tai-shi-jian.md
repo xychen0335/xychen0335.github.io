@@ -146,7 +146,12 @@ async def check_permissions(self, tool_input, context):
 - **远程执行拦截**：`curl url | sh` 这种即使没有越界路径也永不自动放行；
 - **危险命令兜底**：`rm -rf /etc` 这类由框架的 bypass-immune 检测前置拦截，优先级高于一切白名单。
 
-### 5.4 工具组：按阶段打开能力
+### 5.4 计划模式工具
+
+AgentScope 内置计划模式工具，包括 `TaskCreate / TaskGet / TaskList / TaskUpdate`。在较复杂的阶段 skill 中，Agent 会利用计划模式
+用来拆分子任务，从而可以更高效地完成阶段目标。
+
+### 5.5 工具组：按阶段打开能力
 
 考虑到各阶段完成的任务不一致，工具不是一次全开的，多个 tools 按照职责分组。`basic` 组常驻，其余按阶段激活（指引 Agent 调用 `reset_tools` 切换），激活状态随快照持久化：
 
