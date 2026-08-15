@@ -1,5 +1,6 @@
 ---
 title: 'Agent 驱动的科研流水线：基于 AgentScope 的自动化训练平台实践'
+date: 2026-08-08 00:00:00
 tags: [Agent, Harness 工程, AutoResearch]
 category: 工作
 published: true
