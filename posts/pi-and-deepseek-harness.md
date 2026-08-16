@@ -1,5 +1,5 @@
 ---
-title: 'Agent Harness 的两条路：Pi 把中断变成状态机，DeepSeek 把产品拆成插件树'
+title: 'Define Your Agent: Pi and DeepSeek Harness'
 date: 2026-08-16 04:50:00
 tags: [Agent, Harness 工程, 架构]
 category: 工作
