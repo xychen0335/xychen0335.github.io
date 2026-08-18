@@ -3,6 +3,8 @@ dist/
 .trash/
 .DS_Store
 .codex/
+.agents/
+.claude/
 .openai/
 .superpowers/
 docs/
