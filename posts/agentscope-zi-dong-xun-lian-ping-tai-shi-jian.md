@@ -149,8 +149,7 @@ async def check_permissions(self, tool_input, context):
 
 ### 5.4 计划模式工具
 
-AgentScope 内置计划模式工具，包括 `TaskCreate / TaskGet / TaskList / TaskUpdate`。在较复杂的阶段 skill 中，Agent 会利用计划模式
-用来拆分子任务，从而可以更高效地完成阶段目标。
+AgentScope 内置计划模式工具，包括 `TaskCreate / TaskGet / TaskList / TaskUpdate`。在较复杂的阶段 skill 中，Agent 会利用计划模式用来拆分子任务，从而可以更高效地完成阶段目标。
 
 ### 5.5 工具组：按阶段打开能力
 
