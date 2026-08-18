@@ -1,5 +1,5 @@
 ---
-title: 'Agent 驱动的科研流水线：基于 AgentScope 的自动化训练平台实践'
+title: 'Free up your hands with AutoResearch'
 date: 2026-08-08 00:00:00
 tags: [Agent, Harness 工程, AutoResearch]
 category: 工作
@@ -8,7 +8,7 @@ hideInList: false
 feature: 
 isTop: false
 ---
-# Agent 驱动的科研流水线：基于 AgentScope 的自动化训练平台实践
+# 基于 AgentScope 的 AutoResearch 平台
 
 想象一个研究者的日常：拿到一篇论文，要在几天内判断它值不值得复现、能不能复现、指标能不能打过。你要读论文、找仓库、搭环境、跑 baseline、读日志、改脚本、再跑、再读日志……如果这中间有一大半可以交给 Agent，你最想让它替你完成哪一步？
 
