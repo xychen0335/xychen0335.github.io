@@ -6,7 +6,7 @@ category: 工作
 published: true
 hideInList: false
 feature: 
-isTop: false
+isTop: true
 ---
 # 基于 AgentScope 的 AutoResearch 平台
 
