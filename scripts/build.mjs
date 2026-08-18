@@ -304,6 +304,7 @@ const parseMarkdownFile = (fileName, source, modified) => {
     category: metadata.category || categoryFor(title, metadata.tags || []),
     published: metadata.published !== false,
     hideInList: metadata.hideInList === true,
+    isTop: metadata.isTop === true,
     isAbout: slug === 'about',
     content,
     html: markdownToHtml(content),
@@ -403,7 +404,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false, bod
 const cardHtml = (post, featured = false) => {
   const searchText = escapeHtml(`${post.title} ${post.category} ${post.tags.join(' ')}`.toLowerCase());
   return `<article class="post-card${featured ? ' is-featured' : ''}" data-post-card data-category="${escapeHtml(post.category)}" data-search="${searchText}">
-    <div class="post-meta"><span>${escapeHtml(formatDate(post.date))}</span><span>${escapeHtml(post.category)}</span></div>
+    <div class="post-meta"><span>${escapeHtml(formatDate(post.date))}</span>${post.isTop ? '<span class="pin-badge">置顶</span>' : ''}<span>${escapeHtml(post.category)}</span></div>
     <h3><a href="posts/${post.slug}.html">${escapeHtml(post.title)}</a></h3>
     <div class="card-footer"><div class="tag-row">${tagsHtml(post)}</div><a class="card-arrow" href="posts/${post.slug}.html" aria-label="阅读 ${escapeHtml(post.title)}">↗</a></div>
   </article>`;
@@ -474,7 +475,10 @@ export async function build() {
     const { mtime } = await stat(path.join(postsDir, file));
     return parseMarkdownFile(file, source, mtime);
   }))).filter(Boolean);
-  const published = parsed.filter((post) => post.published).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const published = parsed.filter((post) => post.published).sort((a, b) => {
+    if (a.isTop !== b.isTop) return a.isTop ? -1 : 1;
+    return String(b.date).localeCompare(String(a.date));
+  });
   const about = published.find((post) => post.isAbout);
   const visible = published.filter((post) => !post.hideInList && !post.isAbout);
 

@@ -1,5 +1,5 @@
 ---
-title: 'Free up your hands with AutoResearch'
+title: 'Free Up Your Hands with AutoResearch'
 date: 2026-08-08 00:00:00
 tags: [Agent, Harness 工程, AutoResearch]
 category: 工作
