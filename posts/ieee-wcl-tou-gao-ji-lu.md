@@ -1,7 +1,7 @@
 ---
 title: 'IEEE WCL 投稿记录'
 date: 2025-09-16 13:53:03
-tags: []
+tags: [6G, ISAC]
 category: 科研
 published: true
 hideInList: false
