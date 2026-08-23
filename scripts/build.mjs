@@ -96,7 +96,14 @@ const inlineMarkdown = (value) => {
   html = html.replace(/\*\*([^*]+)\*\*/g, (_, strong) => store(`<strong>${strong}</strong>`));
   html = html.replace(/~~([^~]+)~~/g, (_, del) => store(`<del>${del}</del>`));
   html = html.replace(/(^|[^*])\*([^*]+)\*/g, (_, before, em) => `${before}${store(`<em>${em}</em>`)}`);
-  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => tokens[Number(index)]);
+  // 强调、链接等 token 可能包住先前保护的数学/代码 token，需要递归展开。
+  // 最多执行 tokens.length + 1 轮，既能解析嵌套，也避免异常输入造成死循环。
+  for (let pass = 0; pass <= tokens.length; pass += 1) {
+    const resolved = html.replace(/\u0000(\d+)\u0000/g, (_, index) => tokens[Number(index)]);
+    if (resolved === html) break;
+    html = resolved;
+  }
+  return html;
 };
 
 const markdownToHtml = (markdown) => {
@@ -104,6 +111,7 @@ const markdownToHtml = (markdown) => {
   const output = [];
   let paragraph = [];
   let listItems = [];
+  let equationNumber = 0;
 
   const flushParagraph = () => {
     if (paragraph.length) {
@@ -226,7 +234,13 @@ const markdownToHtml = (markdown) => {
         mathLines.push(lines[j]);
         j += 1;
       }
-      output.push(`<div class="math-display">$$${escapeMath(mathLines.join('\n'))}$$</div>`);
+      equationNumber += 1;
+      output.push(
+        `<div class="math-display">` +
+          `<div class="math-content">$$${escapeMath(mathLines.join('\n'))}$$</div>` +
+          `<span class="equation-number" aria-label="公式 ${equationNumber}">(${equationNumber})</span>` +
+        `</div>`
+      );
       i = j;
       continue;
     }

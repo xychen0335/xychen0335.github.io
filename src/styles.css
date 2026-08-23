@@ -209,7 +209,9 @@ button, input { font: inherit; }
 .article-body th { background: var(--panel-strong); color: var(--text); font-weight: 600; white-space: nowrap; }
 .article-body ol { padding-left: 1.5em; }
 .article-body ol > li { list-style: decimal; }
-.article-body .math-display { margin: 1.8em 0; overflow-x: auto; text-align: center; }
+.article-body .math-display { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1em; align-items: center; margin: 1.8em 0; }
+.article-body .math-content { min-width: 0; overflow-x: auto; text-align: center; }
+.article-body .equation-number { color: var(--muted); font-family: var(--serif); font-size: .88em; line-height: 1; white-space: nowrap; }
 .article-body .math-inline { font-size: .95em; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -241,6 +243,8 @@ button, input { font: inherit; }
   .article-wrap { margin: 28px auto 72px; padding: 30px 22px; border-radius: 14px; }
   .article-title { font-size: 42px; }
   .article-body { font-size: 16px; }
+  .article-body .math-display { gap: .55em; }
+  .article-body .equation-number { font-size: .78em; }
   .about-grid { display: block; padding: 55px 0 70px; }
   .about-content { margin-top: 60px; }
 }
