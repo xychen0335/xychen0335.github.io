@@ -93,13 +93,19 @@ $$
 
 把数据流写开，就是：
 
-```text
-旧策略为同一 prompt 采样 G 条 SDE 轨迹
-  → 对最终图片计算 reward
-  → 在组内标准化得到 advantage
-  → 当前策略重算被训练步骤的 log-prob
-  → importance ratio + PPO clip
-  → 更新速度模型参数
+```mermaid
+%% caption: Flow-GRPO 一次策略更新
+flowchart TB
+  grpoPrompt["同一 prompt"] --> grpoOld["旧策略 π_old 采样 G 条 SDE 轨迹"]
+  grpoOld --> grpoImgs["G 张最终图片"]
+  grpoOld --> grpoStore["保存每步状态、动作和 log-prob"]
+  grpoImgs --> grpoReward["奖励模型打分 r₁ … r_G"]
+  grpoReward --> grpoAdv["组内标准化得到优势 Aᵢ"]
+  grpoStore --> grpoCurr["当前策略重算 log πθ"]
+  grpoCurr --> grpoRho["计算 importance ratio ρ"]
+  grpoAdv --> grpoPpo["PPO clip 目标"]
+  grpoRho --> grpoPpo
+  grpoPpo --> grpoTheta["更新速度模型 θ"]
 ```
 
 采样与更新必须分开理解。旧策略负责产生训练数据，当前策略负责解释这些数据；importance ratio 修正二者的差别，clip 防止一次更新离采样策略太远。若还需要更强的约束，可以加入相对参考模型的 KL penalty。
@@ -108,11 +114,16 @@ $$
 
 完整的 SDE rollout 要为每一步记录概率，更新时也要重算许多模型前向，成本很高。Flow-GRPO-Fast 采用了一个更直接的折中：大部分轨迹继续走确定性 ODE，只在随机选中的中间位置打开一个 SDE window。
 
-```text
-共享 ODE 前缀
-  → 少数 SDE 分叉步
-  → 各自沿 ODE 生成最终图片
-  → reward
+```mermaid
+%% caption: Flow-GRPO-Fast 的 SDE window
+flowchart TB
+  fastPrefix["共享 ODE 前缀"] --> fastWin["随机打开一个 SDE 窗口"]
+  fastWin --> fastF1["分叉 1 · ODE 收尾"]
+  fastWin --> fastF2["分叉 2 · ODE 收尾"]
+  fastWin --> fastFg["分叉 G · ODE 收尾"]
+  fastF1 --> fastR["各自得到最终图片和奖励"]
+  fastF2 --> fastR
+  fastFg --> fastR
 ```
 
 同一个 prompt 的多个样本可以共享分叉前的计算。训练也只需重算窗口内的随机步骤。只要最终图片仍由这些分叉状态决定，末端奖励就能为窗口内的动作提供学习信号。
