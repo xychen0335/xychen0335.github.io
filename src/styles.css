@@ -213,6 +213,13 @@ button, input { font: inherit; }
 .article-body .math-content { min-width: 0; overflow-x: auto; text-align: center; }
 .article-body .equation-number { color: var(--muted); font-family: var(--serif); font-size: .88em; line-height: 1; white-space: nowrap; }
 .article-body .math-inline { font-size: .95em; }
+.article-body .mermaid-figure { margin: 2em 0; padding: 18px 14px 12px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.article-body .mermaid-source { display: none; }
+.article-body .mermaid-render { display: flex; justify-content: center; min-height: 96px; }
+.article-body .mermaid-render svg { max-width: 100%; height: auto; overflow: visible; }
+.article-body .mermaid-render svg foreignObject { overflow: visible; }
+.article-body .mermaid-figure figcaption { margin: 6px 0 2px; color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-align: center; }
+.article-body .mermaid-error { margin: 12px 0; color: var(--muted); text-align: center; font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-stars, .hero-star, .shooting-star { animation: none !important; }

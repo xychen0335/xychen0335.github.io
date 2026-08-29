@@ -209,6 +209,22 @@ const markdownToHtml = (markdown) => {
       const common = indents.length ? Math.min(...indents) : 0;
       const rawCode = code.map((line) => line.slice(common)).join('\n');
       const lang = fence[2] || '';
+      if (lang === 'mermaid') {
+        const captionMatch = rawCode.match(/^%%\s*caption:\s*(.+)\s*$/m);
+        const caption = captionMatch ? captionMatch[1].trim() : '';
+        const source = captionMatch ? rawCode.replace(captionMatch[0], '').trim() : rawCode;
+        const capHtml = caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : '';
+        const aria = caption ? ` aria-label="${escapeHtml(caption)}"` : ' aria-label="流程图"';
+        output.push(
+          `<figure class="mermaid-figure">` +
+            `<pre class="mermaid-source">${escapeHtml(source)}</pre>` +
+            `<div class="mermaid-render" role="img"${aria}></div>` +
+            capHtml +
+          `</figure>`
+        );
+        i = j;
+        continue;
+      }
       const { html, language } = highlightCode(rawCode, lang);
       const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : '';
       const label = language ? escapeHtml(language) : 'text';
@@ -341,7 +357,8 @@ const mathAssets = () => `
             { left: '$', right: '$', display: false }
           ],
           throwOnError: false,
-          strict: false
+          strict: false,
+          ignoredClasses: ['code-window', 'mermaid-figure', 'mermaid-source']
         });
       }
     });
@@ -384,7 +401,70 @@ const themeScript = () => `<script>
   })();
 </script>`;
 
-const documentHtml = ({ title, description, body, prefix = '', math = false, bodyClass = '' }) => `<!doctype html>
+const mermaidAssets = () => `
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const lightVars = {
+      fontFamily: 'Noto Serif SC, Songti SC, serif',
+      background: 'transparent',
+      primaryColor: '#f4ebe6',
+      primaryTextColor: '#3a4254',
+      primaryBorderColor: '#c96e83',
+      secondaryColor: '#efe9e1',
+      tertiaryColor: '#f7f4ef',
+      lineColor: '#8b7d88',
+      clusterBkg: '#f8efe9',
+      clusterBorder: '#d4a0ad',
+      titleColor: '#c96e83',
+      edgeLabelBackground: '#f7f4ef',
+      nodeTextColor: '#3a4254'
+    };
+    const darkVars = {
+      fontFamily: 'Noto Serif SC, Songti SC, serif',
+      background: 'transparent',
+      primaryColor: '#3d2e2c',
+      primaryTextColor: '#f2e8de',
+      primaryBorderColor: '#ec9db0',
+      secondaryColor: '#2a2420',
+      tertiaryColor: '#1a1713',
+      lineColor: '#d6b9a6',
+      clusterBkg: '#322824',
+      clusterBorder: '#ec9db0',
+      titleColor: '#ec9db0',
+      edgeLabelBackground: '#241f1a',
+      nodeTextColor: '#f2e8de'
+    };
+    let seq = 0;
+    const renderAll = async () => {
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const themeVariables = dark ? darkVars : lightVars;
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'loose',
+        theme: dark ? 'dark' : 'base',
+        themeVariables,
+        flowchart: { htmlLabels: false, curve: 'basis', padding: 12, wrappingWidth: 260, nodeSpacing: 32, rankSpacing: 44 }
+      });
+      const figures = document.querySelectorAll('.mermaid-figure');
+      for (const figure of figures) {
+        const source = figure.querySelector('.mermaid-source').textContent;
+        const target = figure.querySelector('.mermaid-render');
+        const id = 'mmd-' + Date.now() + '-' + (++seq);
+        try {
+          const preamble = '%%{init: ' + JSON.stringify({ theme: dark ? 'dark' : 'base', themeVariables }) + ' }%%\\n';
+          const { svg } = await mermaid.render(id, preamble + source);
+          target.innerHTML = svg;
+        } catch (err) {
+          target.innerHTML = '<p class="mermaid-error">流程图渲染失败</p>';
+          console.error(err);
+        }
+      }
+    };
+    await renderAll();
+    new MutationObserver(renderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  </script>`;
+
+const documentHtml = ({ title, description, body, prefix = '', math = false, mermaid = false, bodyClass = '' }) => `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -395,6 +475,7 @@ const documentHtml = ({ title, description, body, prefix = '', math = false, bod
   ${themeScript()}
   <link rel="stylesheet" href="${prefix}assets/styles.css">
   ${math ? mathAssets() : ''}
+  ${mermaid ? mermaidAssets() : ''}
 </head>
 <body class="${bodyClass}">
   <div class="page-shell">
@@ -467,7 +548,7 @@ const buildArticle = (post) => {
     <article class="article-body">${post.html}</article>
     <a class="back-link" href="../index.html#posts">← 返回文章列表</a>
   </main>`;
-  return documentHtml({ title: post.title, description: site.description, body, prefix: '../', math: true, bodyClass: 'article-page' });
+  return documentHtml({ title: post.title, description: site.description, body, prefix: '../', math: true, mermaid: post.html.includes('mermaid-figure'), bodyClass: 'article-page' });
 };
 
 const buildAbout = (post) => {
