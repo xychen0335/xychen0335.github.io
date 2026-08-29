@@ -96,16 +96,16 @@ $$
 ```mermaid
 %% caption: Flow-GRPO 一次策略更新
 flowchart TB
-  grpoPrompt["同一 prompt"] --> grpoOld["旧策略 π_old 采样 G 条 SDE 轨迹"]
-  grpoOld --> grpoImgs["G 张最终图片"]
+  grpoPrompt["同一 prompt"] --> grpoOld["$$\text{旧策略 }\pi_{\mathrm{old}}\text{ 采样 }G\text{ 条 SDE 轨迹}$$"]
+  grpoOld --> grpoImgs["$$G\text{ 张最终图片}$$"]
   grpoOld --> grpoStore["保存每步状态、动作和 log-prob"]
-  grpoImgs --> grpoReward["奖励模型打分 r₁ … r_G"]
-  grpoReward --> grpoAdv["组内标准化得到优势 Aᵢ"]
-  grpoStore --> grpoCurr["当前策略重算 log πθ"]
-  grpoCurr --> grpoRho["计算 importance ratio ρ"]
+  grpoImgs --> grpoReward["$$\text{奖励模型打分 }r_1,\ldots,r_G$$"]
+  grpoReward --> grpoAdv["$$\text{组内标准化得到优势 }A_i$$"]
+  grpoStore --> grpoCurr["$$\text{当前策略重算 }\log\pi_\theta$$"]
+  grpoCurr --> grpoRho["$$\text{计算 importance ratio }\rho$$"]
   grpoAdv --> grpoPpo["PPO clip 目标"]
   grpoRho --> grpoPpo
-  grpoPpo --> grpoTheta["更新速度模型 θ"]
+  grpoPpo --> grpoTheta["$$\text{更新速度模型 }\theta$$"]
 ```
 
 采样与更新必须分开理解。旧策略负责产生训练数据，当前策略负责解释这些数据；importance ratio 修正二者的差别，clip 防止一次更新离采样策略太远。若还需要更强的约束，可以加入相对参考模型的 KL penalty。
@@ -120,7 +120,7 @@ flowchart TB
   fastPrefix["共享 ODE 前缀"] --> fastWin["随机打开一个 SDE 窗口"]
   fastWin --> fastF1["分叉 1 · ODE 收尾"]
   fastWin --> fastF2["分叉 2 · ODE 收尾"]
-  fastWin --> fastFg["分叉 G · ODE 收尾"]
+  fastWin --> fastFg["$$\text{分叉 }G\text{ · ODE 收尾}$$"]
   fastF1 --> fastR["各自得到最终图片和奖励"]
   fastF2 --> fastR
   fastFg --> fastR

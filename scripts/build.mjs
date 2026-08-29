@@ -438,20 +438,27 @@ const mermaidAssets = () => `
     const renderAll = async () => {
       const dark = document.documentElement.getAttribute('data-theme') === 'dark';
       const themeVariables = dark ? darkVars : lightVars;
-      mermaid.initialize({
+      const mermaidConfig = {
         startOnLoad: false,
         securityLevel: 'loose',
         theme: dark ? 'dark' : 'base',
         themeVariables,
-        flowchart: { htmlLabels: false, curve: 'basis', padding: 12, wrappingWidth: 260, nodeSpacing: 32, rankSpacing: 44 }
-      });
+        forceLegacyMathML: true,
+        flowchart: { htmlLabels: true, curve: 'basis', padding: 12, wrappingWidth: 280, nodeSpacing: 32, rankSpacing: 44 }
+      };
+      mermaid.initialize(mermaidConfig);
       const figures = document.querySelectorAll('.mermaid-figure');
       for (const figure of figures) {
         const source = figure.querySelector('.mermaid-source').textContent;
         const target = figure.querySelector('.mermaid-render');
         const id = 'mmd-' + Date.now() + '-' + (++seq);
         try {
-          const preamble = '%%{init: ' + JSON.stringify({ theme: dark ? 'dark' : 'base', themeVariables }) + ' }%%\\n';
+          const preamble = '%%{init: ' + JSON.stringify({
+            theme: mermaidConfig.theme,
+            themeVariables,
+            forceLegacyMathML: true,
+            flowchart: mermaidConfig.flowchart
+          }) + ' }%%\\n';
           const { svg } = await mermaid.render(id, preamble + source);
           target.innerHTML = svg;
         } catch (err) {

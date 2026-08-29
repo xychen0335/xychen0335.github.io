@@ -148,20 +148,20 @@ DMD 项提供老师分布与学生分布之间的方向，GAN 项把这个方向
 ```mermaid
 %% caption: DMD2 一次训练迭代
 flowchart TB
-  dmdZ["噪声 z + 条件 c"] --> dmdXg["学生 Gθ 少步生成 xᵍ"]
+  dmdZ["$$\text{噪声 }z+\text{条件 }c$$"] --> dmdXg["$$\text{学生 }G_\theta\text{ 少步生成 }x^{g}$$"]
   dmdXg --> dmdFork{本轮如何更新}
 
-  dmdFork -->|"每隔 K 次"| dmdSu1["冻结 real teacher、Fφ、Dψ"]
-  dmdSu1 --> dmdSu2["L_DMD：real / fake score 差"]
-  dmdSu1 --> dmdSu3["L_GAN：判别器的真假信号"]
-  dmdSu2 --> dmdSu4["更新 θ"]
+  dmdFork -->|"$$\text{每隔 }K\text{ 次}$$"| dmdSu1["$$\text{冻结 real teacher、}F_\phi\text{、}D_\psi$$"]
+  dmdSu1 --> dmdSu2["$$L_{\mathrm{DMD}}\text{：real / fake score 差}$$"]
+  dmdSu1 --> dmdSu3["$$L_{\mathrm{GAN}}\text{：判别器的真假信号}$$"]
+  dmdSu2 --> dmdSu4["$$\text{更新 }\theta$$"]
   dmdSu3 --> dmdSu4
 
-  dmdFork -->|"每次"| dmdGu1["停止梯度 sg(xᵍ)"]
-  dmdGu1 --> dmdGu2["Fφ：加噪后回归 ε-xᵍ"]
-  dmdGu1 --> dmdGu3["Dψ：真样本 vs sg(xᵍ)"]
-  dmdGu2 --> dmdGu4["更新 φ"]
-  dmdGu3 --> dmdGu5["更新 ψ"]
+  dmdFork -->|"每次"| dmdGu1["$$\text{停止梯度 }\operatorname{sg}(x^{g})$$"]
+  dmdGu1 --> dmdGu2["$$F_\phi\text{：加噪后回归 }\epsilon-x^{g}$$"]
+  dmdGu1 --> dmdGu3["$$D_\psi\text{：真样本 vs }\operatorname{sg}(x^{g})$$"]
+  dmdGu2 --> dmdGu4["$$\text{更新 }\phi$$"]
+  dmdGu3 --> dmdGu5["$$\text{更新 }\psi$$"]
 ```
 
 更新学生时，real teacher、fake teacher 和 discriminator 的参数全部冻结，但它们对学生输出给出的梯度方向仍会传给 $G_\theta$。随后学生样本停止梯度，用来训练另外两组参数：$F_\phi$ 通过去噪损失追踪当前的 $p_\theta$，$D_\psi$ 通过真假分类损失学习数据分布与生成分布的差别。代码里这两项常被合并进同一个 guidance/critic optimizer step，但它们仍是作用不同的两种损失。
@@ -264,20 +264,20 @@ $$
 ```mermaid
 %% caption: CDM 一次训练迭代
 flowchart TB
-  cdmNoise["纯噪声"] --> cdmOde["学生 Gθ 按动态时间表走少步 ODE"]
+  cdmNoise["纯噪声"] --> cdmOde["$$\text{学生 }G_\theta\text{ 按动态时间表走少步 ODE}$$"]
   cdmOde --> cdmTraj["在线轨迹及其锚点"]
   cdmTraj --> cdmFork{本轮如何更新}
 
-  cdmFork -->|"每次"| cdmFu1["抽取 sg(x₀) 并随机加噪"]
-  cdmFu1 --> cdmFu2["回归速度目标 ε-x₀"]
-  cdmFu2 --> cdmFu3["更新 φ"]
+  cdmFork -->|"每次"| cdmFu1["$$\text{抽取 }\operatorname{sg}(x_0)\text{ 并随机加噪}$$"]
+  cdmFu1 --> cdmFu2["$$\text{回归速度目标 }\epsilon-x_0$$"]
+  cdmFu2 --> cdmFu3["$$\text{更新 }\phi$$"]
 
-  cdmFork -->|"每隔 R 次"| cdmSu1["冻结 real teacher 与 Fφ"]
+  cdmFork -->|"$$\text{每隔 }R\text{ 次}$$"| cdmSu1["$$\text{冻结 real teacher 与 }F_\phi$$"]
   cdmSu1 --> cdmSu2["CA：CFG 条件对齐"]
   cdmSu1 --> cdmSu3["on-DM：锚点上的分布匹配"]
-  cdmSu1 --> cdmSu4["锚点 Euler 外推到 σₛ"]
+  cdmSu1 --> cdmSu4["$$\text{锚点 Euler 外推到 }\sigma_s$$"]
   cdmSu4 --> cdmSu5["off-DM：外推位置上的分布匹配"]
-  cdmSu2 --> cdmSu6["更新 θ"]
+  cdmSu2 --> cdmSu6["$$\text{更新 }\theta$$"]
   cdmSu3 --> cdmSu6
   cdmSu5 --> cdmSu6
 ```
