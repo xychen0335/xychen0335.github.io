@@ -20,7 +20,7 @@ Pi 默认没有 MCP、subagent、权限弹窗、plan mode、todo list 和后台 
 2. 怎样让同一套 agent loop 服务于 CLI、TUI、SDK 和其他应用；
 3. 怎样让 agent 在不修改核心的前提下，逐步长成适合个人和项目的形状。
 
-第三点常被称为“自进化”。Pi 不会在后台训练自己的权重。它的进化发生在模型外部：把一次任务中验证有效的规则、流程和工具写回文件系统，再由下一次运行加载。理解这一点，才能理解 Pi 为什么如此重视会话格式、资源加载和扩展接口。
+第三个问题由 extension 回答。Pi 把工具、事件、上下文、会话和 UI 的控制点暴露给 TypeScript 模块。用户可以在不修改核心的前提下实现 plan mode、subagent、权限确认和自己的工作流。理解这一点，才能理解 Pi 为什么保持小核心，同时提供一套覆盖整个运行过程的 extension API。
 
 ## 一、Pi 的整体思想：核心只提供机制
 
@@ -165,67 +165,107 @@ contextTokens > contextWindow - reserveTokens
 
 Compaction 也不是封闭实现。Extension 可以在 `session_before_compact` 拦截默认流程，取消压缩，修改摘要提示，换用另一模型，或把领域状态写进 `details`。上下文策略本身就是扩展点。
 
-## 五、Pi 的自进化：把有效行为沉淀成资源
+## 五、Extension 是 Pi 的关键设计
 
-Pi 在 README 中称自己为 self extensible coding agent。这里的“self”并不是系统不受控制地修改自身，而是 agent 已经具备完成扩展闭环所需的全部能力：读取自身文档、编写文件、运行测试、加载新资源，并观察结果。
+Pi 没有内置 plan mode，但仓库里有一份完整的 plan mode extension。它注册 `/plan` 命令和快捷键，切换可用工具，在 `tool_call` 阶段拦截危险命令，在 `before_agent_start` 阶段注入规则，用 `appendEntry()` 保存状态，再用 TUI widget 显示任务进度。
 
-Pi 提供了四级能力，每一级解决不同复用范围的问题。
+这说明 extension 不是一个附带的插件入口。它是 Pi 把产品功能留给用户定义的主要机制。
 
-### 1. Context file：记住项目事实
+### 5.1 Extension 从声明变成运行时行为
 
-`AGENTS.md` 适合稳定、始终生效的约束，例如构建命令、目录约定、安全规则和代码风格。它不需要模型先判断是否调用，每次进入作用域都会加载。
+Extension 是一个 TypeScript factory。Pi 用 `jiti` 加载 `.ts` 或 `.js` 文件，再把 `ExtensionAPI` 传给 factory：
 
-一次会话里反复纠正 agent 的规则，如果已经成为团队共识，就不该继续留在聊天历史里。写进 `AGENTS.md` 后，新会话从第一轮就能遵守。
+```ts
+export default function (pi: ExtensionAPI) {
+	pi.on("tool_call", async (event, ctx) => {
+		// 在工具执行前检查或阻止调用
+	});
 
-### 2. Prompt template：固化重复请求
-
-Prompt template 把经常输入的任务变成 `/review`、`/release` 这类命令。它只是 Markdown 展开，适合没有条件逻辑的固定流程。
-
-好的 template 保存的不是一句漂亮提示词，而是一组经过实际任务验证的检查项和输出格式。
-
-### 3. Skill：按需加载领域工作流
-
-Skill 适合较长的专门流程。除了 `SKILL.md`，还可以带脚本、reference 和模板资产。它只在匹配任务时展开，因此能保存大量领域知识而不长期占用上下文。
-
-如果一次复杂任务中形成了可靠步骤，agent 可以把它整理成 skill。下次遇到相同问题，系统不再依赖会话记忆，而是读取一个版本化、可审阅的操作手册。
-
-### 4. Extension：改变运行时行为
-
-当需求不只是“告诉模型怎么做”，就进入 extension。Extension 是 TypeScript 模块，可以：
-
-- 注册模型可调用的工具；
-- 在 tool call 前做审批或路径保护；
-- 注入或变换上下文；
-- 自定义 compaction；
-- 保存跨重启状态；
-- 增加命令、快捷键和 TUI；
-- 接入外部系统。
-
-放在 `~/.pi/agent/extensions` 或项目 `.pi/extensions` 的代码可以通过 `/reload` 热加载。Pi 甚至在文档入口直接提示用户让 agent 帮忙创建 extension、skill、prompt template 和 package。
-
-于是“自进化”可以被写成一个具体闭环：
-
-```text
-任务中发现反复摩擦
-   ↓
-判断应沉淀为规则、模板、skill 还是 extension
-   ↓
-agent 编写资源并进行验证
-   ↓
-/reload 载入新行为
-   ↓
-在真实任务中观察会话与工具结果
-   ↓
-继续修订，稳定后打包共享
+	pi.registerTool({
+		name: "my_tool",
+		// parameters、execute 和 renderer
+	});
+}
 ```
 
-进化的最小单位不是模型参数，而是可读、可 diff、可测试的文件。这让行为变化能够进入 Git，也能在发现问题时回滚。
+`ExtensionAPI` 同时提供注册和运行时操作。Extension 可以注册工具、命令、快捷键、CLI flag、provider 和 renderer，也可以发送消息、切换工具、切换模型、执行命令、触发 compaction 和读写会话状态。
 
-### Package：把个人经验变成可组合能力
+加载过程分成几步：
 
-Pi package 可以同时打包 extension、skill、prompt 和 theme，通过 npm、Git 或本地路径安装。项目设置还可以固定 package 来源与 ref，让团队共享同一套 agent 行为。
+```text
+全局目录、项目目录、package、CLI 参数
+                  ↓
+          ResourceLoader 发现入口
+                  ↓
+       加载 factory，收集注册项
+                  ↓
+        ExtensionRunner 持有实例
+                  ↓
+ AgentSession 绑定工具、会话、模型和 UI
+```
 
-这个分发层完成了从“我的 agent 学会了”到“这个仓库里的所有 agent 都会”的转换。相比把所有能力合并进 Pi 核心，package 让不同用户保留不同选择，也避免少数工作流永久污染所有人的上下文。
+这个顺序把声明和运行环境分开。Extension 加载时登记 handlers 和工具。`AgentSession` 创建后，`ExtensionRunner` 才获得当前会话、模型、工具和 UI 的操作能力。
+
+执行 `/reload` 时，Pi 关闭旧 extension runtime，重新加载资源并创建新的 runner。旧 context 会失效，避免 extension 在 reload 或会话切换后继续操作过期对象。
+
+### 5.2 Event 覆盖整个运行过程
+
+Pi 的 event 不只是完成后的通知。很多 event 允许 extension 改写或阻止下一步：
+
+```text
+用户输入
+  ↓ input
+skill 和 template 展开
+  ↓ before_agent_start
+构造 system prompt 和本轮消息
+  ↓ context
+构造发给模型的消息
+  ↓ before_provider_request
+调用 provider
+  ↓ tool_call
+执行工具
+  ↓ tool_result
+写回消息和会话
+  ↓ agent_end
+```
+
+`input` 可以改写输入或直接处理请求。`before_agent_start` 可以注入消息或替换本轮 system prompt。`context` 可以在每次模型调用前过滤、重排或增加消息。`tool_call` 可以阻止工具执行，`tool_result` 可以改写返回给模型的内容。`session_before_compact` 还可以取消默认压缩或提交自己的 summary。
+
+`ExtensionRunner` 按加载顺序执行 handlers。前一个 extension 对上下文或请求体的修改，会成为后一个 extension 的输入。Extension 因此可以组合，加载顺序也会影响最终行为。
+
+### 5.3 Plan mode 由多个控制点组成
+
+官方 plan mode 示例先保存当前工具列表，再关闭 `edit` 和 `write`。它通过 `tool_call` handler 限制 `bash`，只允许 allowlist 中的命令。`before_agent_start` handler 注入模式规则，`context` handler 在退出后清理旧消息。
+
+Plan mode 还需要持久状态和 UI。Extension 注册 `/plan`、`/todos` 和快捷键，用 `appendEntry()` 把开关、计划项和执行状态写进 session JSONL，再用 status 和 widget 呈现进度。
+
+所以 plan mode 不是一段 prompt。它同时改变工具策略、上下文、会话状态和交互界面。Pi 核心没有定义 `PlanMode` 类型，但 extension API 已经提供了实现它所需的控制点。
+
+同样的接口还能实现其他功能：
+
+- permission gate 在 `tool_call` 阶段检查 Bash，并通过 `ctx.ui` 请求确认。
+- protected paths 在写操作发生前检查路径。
+- subagent 注册一个工具，再启动独立的 Pi 进程并汇总结果。
+- custom provider 注册模型目录、鉴权方式或自己的 stream handler。
+- Gondolin extension 把内置工具和 shell 命令送入 Linux micro-VM。
+
+这些功能不需要各自修改 agent loop。`pi-agent-core` 保持通用，`pi-coding-agent` 通过 extension 增加具体工作流。
+
+### 5.4 Resource 和 package 各有自己的职责
+
+Context file、prompt template、skill、extension 和 package 解决不同问题：
+
+| 机制 | 职责 |
+|---|---|
+| Context file | 提供当前目录始终生效的项目事实和规则 |
+| Prompt template | 展开一段重复使用的请求 |
+| Skill | 按需加载一套领域说明和配套文件 |
+| Extension | 改变工具、事件、上下文、会话、provider 和 UI 行为 |
+| Pi package | 打包并分发 extension、skill、prompt 和 theme |
+
+Extension 还能通过 `resources_discover` 动态贡献 skill、prompt 和 theme 路径。Package 则负责分发，可以从 npm、Git 或本地路径安装。项目 settings 可以固定 package 来源和 ref。
+
+Skill 告诉模型怎样完成一类任务。Extension 改变 agent 能做什么，以及什么时候允许它做。Package 把这些资源交给其他用户和项目。
 
 ## 六、正在形成的 durable harness
 
@@ -260,11 +300,11 @@ Pi 的设计不是无条件更好，它只是把复杂度放在不同位置。
 
 Pi 最值得借鉴的不是某个工具或 TUI，而是它对 agent harness 边界的判断。
 
-模型调用只接收经过投影的上下文；历史保存在可分支的会话树中；compaction 生成可恢复的检查点；工作流通过 context file、template、skill 和 extension 分层沉淀；成熟能力再由 package 分发。核心不需要预先知道用户最终会把它变成什么。
+模型调用只接收经过投影的上下文；历史保存在可分支的会话树中；compaction 生成可恢复的检查点。Extension 再接入输入、模型请求、工具、会话和 UI，package 负责分发这些能力。核心不需要预先知道用户最终会加入哪种工作流。
 
-如果把 coding agent 看成一个长期使用的工作环境，这比堆功能更有价值。真正可持续的 agent 不是每次更新都获得更多内置按钮，而是能把你的纠正、流程和工具逐渐吸收到自己的外部结构里，同时让这些变化保持可见、可审查、可撤销。
+如果把 coding agent 看成一个长期使用的工作环境，这比堆功能更有价值。Pi 保持默认行为有限，同时让每个用户决定需要哪些工具、策略和交互。
 
-这就是 Pi 的“Define Your Agent”：不是从一份庞大的产品菜单里选择模式，而是从一个小内核出发，把自己的工作方法逐步写进去。
+这就是 Pi 的“Define Your Agent”：从一个小内核出发，用 extension 定义自己的 agent。
 
 ## 参考资料
 
@@ -272,3 +312,5 @@ Pi 最值得借鉴的不是某个工具或 TUI，而是它对 agent harness 边�
 - [What I learned building an opinionated and minimal coding agent](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/)：Pi 原始设计思路。
 - [Sessions](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sessions.md) 与 [Compaction](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/compaction.md)：会话树和上下文压缩。
 - [Extensions](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md)、[Skills](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md) 与 [Packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)：Pi 的扩展与分发机制。
+- [Extension loader](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/extensions/loader.ts) 与 [Extension runner](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/extensions/runner.ts)：extension 的加载、注册和事件执行。
+- [Plan mode extension](https://github.com/earendil-works/pi/tree/main/packages/coding-agent/examples/extensions/plan-mode) 与 [Subagent extension](https://github.com/earendil-works/pi/tree/main/packages/coding-agent/examples/extensions/subagent)：复杂工作流如何在核心之外实现。
