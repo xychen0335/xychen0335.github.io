@@ -267,24 +267,7 @@ Extension 还能通过 `resources_discover` 动态贡献 skill、prompt 和 them
 
 Skill 告诉模型怎样完成一类任务。Extension 改变 agent 能做什么，以及什么时候允许它做。Package 把这些资源交给其他用户和项目。
 
-## 六、正在形成的 durable harness
-
-仓库中还有另一条更底层的设计线：`packages/agent/src/harness` 正在把 agent 运行扩展为可恢复的耐久状态机。
-
-这套接口把持久数据分成几类：
-
-- **entries**：对话树上的消息、compaction 和自定义内容；
-- **records**：operation、tool start、queue、usage 等运行记录；
-- **lanes**：指向同一棵树不同 leaf 的命名游标；
-- **facts**：session name、label 等最新值。
-
-工具还能声明 `replay: "safe" | "never"`。其意图很明确：进程若在外部效果之后崩溃，恢复逻辑必须知道工具能否重放，不能默认再执行一次。
-
-不过，以当前仓库代码为准，这一层仍是正在建设的接口。`AgentHarness` 已经定义了 `prompt()`、`resume()`、`compact()`、lane 和 operation 类型，但主要方法仍返回 `HarnessNotImplemented`。因此，不能把 durable program counter、崩溃恢复和多 lane 描述成 Pi CLI 已经完整交付的能力。
-
-这套未完成接口仍值得看。它说明 Pi 想把现在的“可检查会话”继续推进到“可恢复执行”：不仅知道模型过去说过什么，还知道一次 operation 做到了哪一步，以及外部 effect 是否允许再次发生。
-
-## 七、极简设计的代价
+## 六、极简设计的代价
 
 Pi 的设计不是无条件更好，它只是把复杂度放在不同位置。
 
