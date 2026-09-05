@@ -87,6 +87,16 @@ agent = Agent(
 
 ## 4. Agentic Workflow 与 Skills 编排：把知识从模型里拿出来
 
+### 4.0 上下文
+
+对应 §2.2 装配 `Agent(...)` 时注入的 `system_prompt`、`toolkit` 等参数，模型每轮实际进入的上下文分为三层，各自的内容和生命周期都不同：
+
+1. **system prompt**：Agent 的身份、工作方式与行为边界。
+
+2. **tools schema（按阶段激活）**：当前激活工具的 name / description / parameters 作为 function calling 定义单独下发，与 `system prompt` 分开。`basic` 常驻，其余靠 `reset_tools` 按阶段打开，工具组激活时还会回灌一段 `instructions`。
+
+3. **messages（append-only）**：user / assistant / tool result 历史，任务里持续增长的部分。
+
 ### 4.1 System Prompt
 
 赋予 Agent 复现助手的人格，告知其可以使用的工具，并明确工作方式和执行边界。其分为三部分：
@@ -97,7 +107,7 @@ agent = Agent(
 
 ### 4.2 AgentScope 的技能读取
 
-为了保证自动论文复现过程有序、可维护，系统将复现流程拆分为一组阶段性 Skills。每个 Skill 封装特定阶段的操作规范、工具使用方式、输入输出契约以及下一阶段路由规则。**Agent 通过 AgentScope 内置的 SkillViewer 工具按需检索**。
+为了保证自动论文复现过程有序、可维护，系统将复现流程拆分为一组阶段性 Skills。每个 Skill 封装特定阶段的操作规范、工具使用方式、输入输出契约以及下一阶段路由规则。**Agent 通过 AgentScope 内置的 SkillViewer 工具按需检索**。Skill 为渐进式披露，Agent 调用 SkillViewer 后，SKILL.md 正文和 references 作为 tool result 注入上下文。
 
 ```python
 toolkit = Toolkit(
@@ -109,6 +119,8 @@ toolkit = Toolkit(
     tool_groups=tool_groups,
 )
 ```
+
+Toolkit 把每个已注册 skill 的 name/description 作为索引暴露。
 
 ### 4.3 入口技能 + 多阶段「任务技能」
 
@@ -205,6 +217,7 @@ AgentScope 内置计划模式工具，包括 `TaskCreate / TaskGet / TaskList / 
 ## 7. 总结
 
 1. **长程 Agent 任务 = 状态机 + 技能 + 工具约束**。状态机管「进行到哪」，技能管「该怎么做」，工具组管「现在能做什么」，三者缺一不可。
-2. **Agent 框架解耦**。框架与业务层分离。事件、存储、审批这些业务边界在自己手里，框架负责 Agent 装配、推理与工具执行，替换成本最低。
-3. **持久化保存「执行态」而不是「聊天记录」**。状态快照 + 事件游标 + 可重建缓存剥离，是无状态服务支撑长任务的关键。
-4. **自进化闭环的底线是「可验证」**。轨迹蒸馏成经验单元、因果校验、禁止只增不减、进化不碰裁判——没有这几条，技能库只会越进化越脏。
+2. **上下文是三条通道，不是一个大 prompt**。system 钉人和边界，tools schema 声明当前能力，messages（含 SkillViewer 的 tool result）承载真正涨起来的执行历史；按需加载、按阶段开工具、超阈值再压缩。
+3. **Agent 框架解耦**。框架与业务层分离。事件、存储、审批这些业务边界在自己手里，框架负责 Agent 装配、推理与工具执行，替换成本最低。
+4. **持久化保存「执行态」而不是「聊天记录」**。状态快照 + 事件游标 + 可重建缓存剥离，是无状态服务支撑长任务的关键。
+5. **自进化闭环的底线是「可验证」**。轨迹蒸馏成经验单元、因果校验、禁止只增不减、进化不碰裁判——没有这几条，技能库只会越进化越脏。
