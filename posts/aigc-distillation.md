@@ -251,9 +251,15 @@ $$
 
 三个方向不应混成一个含糊的“一致性损失”：CA 负责条件对齐，on-DM 负责学生已经走到的轨迹状态，off-DM 才负责锚点之间的连续时间空隙。
 
-### 2.5 一次连续时间蒸馏怎样更新
+### 2.5 为什么 CDM 不需要 GAN
 
-参数角色与前面的分布匹配相同，但这里没有必要再引入 GAN discriminator：
+DMD2 引入 GAN，主要是为了修补离散分布匹配留下的画质问题。固定的少数时间点没有约束锚点之间的速度场，再叠加反向 KL 的 mode-seeking 倾向，学生容易产生过度平滑、纹理丢失和局部伪影。判别器直接比较真实样本与生成样本，能把这部分细节信号补回来。
+
+CDM 选择从分布匹配本身入手。动态时间表让 on-DM 覆盖整个时间区间，off-DM 又专门把 Euler 外推造成的锚点间漂移拉回目标分布；CA 则补上文本条件方向。原来需要 GAN 校正的细节损失，很大一部分来自监督位置过于稀疏，而不是 real/fake score difference 完全无法提供画质信号。把分布梯度放到更多轨迹位置后，CDM 可以只用 CA、on-DM 和 off-DM 得到足够的监督，不必再训练一个真假判别器。
+
+### 2.6 一次连续时间蒸馏怎样更新
+
+由于 CDM 不再需要对抗分支，因此其涉及的参数角色只有三类：
 
 - **real teacher** 始终冻结，提供 conditional、unconditional 和目标分布的速度预测；
 - **student $G_\theta$** 产生少步 ODE 轨迹，也是最终保留的模型；
@@ -311,4 +317,4 @@ DMD 与 CDM 不是两条并列路线。后者继承了前者的 real/fake score 
 ## 参考
 
 - [DMD2](https://github.com/tianweiy/DMD2)：Distribution Matching Distillation 的官方实现。
-- [Continuous-Time Distribution Matching](https://github.com/byliutao/CDM)：连续时间分布匹配的官方实现。
+- [Continuous-Time Distribution Matching 论文](https://arxiv.org/abs/2605.06376)与[官方实现](https://github.com/byliutao/CDM)。
