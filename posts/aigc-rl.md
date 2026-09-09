@@ -10,125 +10,307 @@ isTop: false
 ---
 # 扩散模型的强化学习：如何把生成轨迹变成策略
 
-对同一个 prompt 生成八张图，奖励模型很容易选出其中更好的几张。真正困难的是下一步：怎样把最终图片的分数，传回几十个去噪步骤？
+对同一个 prompt 生成八张图，奖励模型很容易选出其中更好的几张。真正困难的是下一步：怎样把最终图片的一个分数，传回几十个去噪步骤从而完成策略模型的更新呢？
 
-语言模型可以直接计算每个 token 的概率。确定性的 flow matching 采样却只有一条 ODE 轨迹，下一状态由当前状态唯一决定，没有普通意义上可用于策略梯度的转移概率。Flow-GRPO 的关键不是把 GRPO 换个地方运行，而是先把生成过程改造成一个有概率密度的随机策略。
+[Flow-GRPO](https://arxiv.org/abs/2505.05470) 提供了一个可行的思路。其把 flow matching 的去噪过程建模为 MDP；再把确定性 ODE 改写为具有相同边缘分布的 SDE，让每一步都有可计算的高斯概率；最后用组内相对优势和 PPO clip 更新这些转移概率。
 
-## 确定性 ODE 为什么没有可用的 log-prob
+## 从 rectified flow 到 MDP
 
-设 flow matching 模型在状态 $x_t$ 上预测速度 $v_\theta(x_t,t,c)$。确定性的 Euler 更新为
-
-$$
-x_{t-1}=x_t+\Delta t\,v_\theta(x_t,t,c).
-$$
-
-给定 $x_t$ 后，$x_{t-1}$ 已经确定。它对应的是一个退化的 Dirac 分布，无法像语言模型那样记录普通的 $\log\pi_\theta(x_{t-1}\mid x_t,c)$，也就不能直接构造 importance ratio。
-
-解决方法是在采样时把 ODE 步改成随机的 SDE 步：
+Rectified flow 在数据 $x_0$ 和高斯噪声 $x_1$ 之间做线性插值：
 
 $$
-x_{t-1}\sim
-\mathcal{N}\left(\mu_\theta(x_t,t,c),\sigma_t^2I\right).
+x_t=(1-t)x_0+t x_1,\qquad t\in[0,1].
 $$
 
-均值 $\mu_\theta$ 仍由速度模型决定，额外噪声则让每一步都有明确的高斯转移密度。于是一次图片生成可以写成
+这里 $t=0$ 是干净数据，$t=1$ 是噪声。模型通过下面的 flow matching 目标回归速度场：
 
 $$
-p_\theta(x_{0:T}\mid c)
-=p(x_T)\prod_{t=1}^{T}
-\pi_\theta(x_{t-1}\mid x_t,c).
+\mathcal L_{\mathrm{FM}}(\theta)
+=\mathbb E_{t,x_0,x_1}
+\left[\left\|v_\theta(x_t,t,c)-(x_1-x_0)\right\|_2^2\right].
 $$
 
-现在每个去噪步骤都有 log-prob，整条生成轨迹也就成了一条可以做 policy optimization 的随机决策序列。噪声在这里不只是增加多样性，它首先是在定义策略。
-
-## 奖励只有一个，优势从组内比较得到
-
-强化学习希望最大化
+生成时从 $x_1\sim\mathcal N(0,I)$ 出发，沿时间减小的方向积分
 
 $$
-J(\theta)
-=\mathbb{E}_{x_0\sim p_\theta(\cdot\mid c)}
-[r(x_0,c)].
+\mathrm d x_t=v_\theta(x_t,t,c)\,\mathrm dt.
 $$
 
-对同一个 prompt，用旧策略采样 $G$ 条轨迹，得到最终图片和奖励 $r_1,\ldots,r_G$。GRPO 不再训练一个单独的 value model，而是直接用组内均值和标准差构造优势：
+去噪过程可以建模为 MDP：
+
+| MDP 元素 | Flow matching 中的含义 |
+|---|---|
+| 状态 | $s_t=(c,t,x_t)$ |
+| 动作 | $a_t=x_{t-h}$，即下一步 latent |
+| 策略 | $\pi_\theta(a_t\mid s_t)=p_\theta(x_{t-h}\mid x_t,c)$ |
+| 状态转移 | 动作一旦选定，下一个状态就是 $(c,t-h,x_{t-h})$ |
+| 奖励 | 只在轨迹结束时给出 $R(x_0,c)$ |
+
+其中 $h>0$ 表示反向积分的步长。这样写以后，一张图片的生成过程就是一条轨迹，最终图片的奖励则是这条轨迹的回报。
+
+问题在于，原始 Euler 步
 
 $$
-A_i=
-\frac{r_i-\operatorname{mean}(r_1,\ldots,r_G)}
-{\operatorname{std}(r_1,\ldots,r_G)+\varepsilon}.
+x_{t-h}=x_t-hv_\theta(x_t,t,c)
 $$
 
-这个 baseline 消除了 prompt 难度差异。一个很难的 prompt 即使整组分数都低，其中相对更好的样本仍会得到正优势；一个容易的 prompt 即使绝对分数很高，低于组内平均的结果仍会被抑制。
+在给定 $x_t$ 后只有一个结果。它对应退化的 Dirac 条件分布，不能直接得到 PPO 所需的普通 log-prob。若从确定性连续流计算密度，还需要估计速度场的散度，计算代价很高。更重要的是，除了初始噪声以外，轨迹中没有新的随机动作，RL 很难在中间状态附近继续探索。
 
-图片只在轨迹结束时得到一次奖励。最简单的做法，是让同一条轨迹上被训练的所有去噪步共享这个优势 $A_i$。这不是精细的逐步 credit assignment，但避免了为图像生成再训练一个庞大的价值模型。
+## ODE 与 SDE 之间的转换
 
-## 一次策略更新怎样发生
+[Yang et al.](https://arxiv.org/abs/2011.13456) 早已证明了扩散模型背后的 SDE 与 ODE 是可以互相转换的。总存在一个 SDE，其在每个时刻的边缘分布 $p_t(x)$ 与原 ODE 一致。
 
-rollout 阶段使用旧策略，并保存每个随机步骤的状态、动作和 log-prob。得到组内优势后，当前策略重新计算同一批转移的 log-prob：
+原 ODE 对应的连续性方程为
 
 $$
-\rho_{i,t}
-=
-\frac{\pi_\theta(x_{t-1}^i\mid x_t^i,c)}
-{\pi_{\mathrm{old}}(x_{t-1}^i\mid x_t^i,c)}
-=
-\exp\left(
-\log\pi_\theta-\log\pi_{\mathrm{old}}
+\partial_t p_t(x)
+=-\nabla\cdot\left[v_t(x)p_t(x)\right].
+$$
+
+考虑一般的正向 SDE：
+
+$$
+\mathrm d x_t=f_{\mathrm{SDE}}(x_t,t)\,\mathrm dt
++\sigma_t\,\mathrm d w_t.
+$$
+
+当 $\sigma_t$ 只依赖时间时，它的 Fokker-Planck 方程是
+
+$$
+\partial_t p_t(x)
+=-\nabla\cdot\left[f_{\mathrm{SDE}}(x,t)p_t(x)\right]
++\frac{\sigma_t^2}{2}\nabla^2p_t(x).
+$$
+
+利用
+
+$$
+\nabla^2p_t(x)
+=\nabla\cdot\left[p_t(x)\nabla\log p_t(x)\right],
+$$
+
+令 SDE 和 ODE 的概率演化方程相等，可以取
+
+$$
+f_{\mathrm{SDE}}(x,t)
+=v_t(x)+\frac{\sigma_t^2}{2}\nabla\log p_t(x).
+$$
+
+这条正向 SDE 与原 ODE 共享边缘分布。根据反向时间 SDE 公式，反向过程的 drift 需要减去 $\sigma_t^2\nabla\log p_t(x)$，所以
+
+$$
+\mathrm d x_t
+=\left[v_t(x_t)-\frac{\sigma_t^2}{2}\nabla\log p_t(x_t)\right]\mathrm dt
++\sigma_t\,\mathrm d\bar w_t.
+$$
+
+这里的“等价”是边缘分布等价。ODE 与 SDE 的单条轨迹不同，转移核也不同；相同的是理想连续时间下每个时刻的 $p_t(x)$。这正好满足 RL 的需要：保留原生成分布的演化，同时把每一步变成随机策略。
+
+## v-prediction 与 score-prediction 的等价性
+
+上式用分数 $\nabla\log p_t(x_t)$ 来表示，考虑到流匹配框架的目标是预测速度场，因此将上式转化为更一般的速度场形式。
+
+给定 $x_0$，有
+
+$$
+p_{t\mid0}(x_t\mid x_0)
+=\mathcal N\left((1-t)x_0,t^2I\right),
+$$
+
+所以条件 score 为
+
+$$
+\nabla\log p_{t\mid0}(x_t\mid x_0)
+=-\frac{x_t-(1-t)x_0}{t^2}
+=-\frac{x_1}{t}.
+$$
+
+对后验分布取期望，得到边缘 score：
+
+$$
+\nabla\log p_t(x_t)
+=-\frac{1}{t}\mathbb E[x_1\mid x_t].
+$$
+
+另一方面，最优速度场是条件速度的期望：
+
+$$
+\begin{aligned}
+v_t(x)
+&=\mathbb E[x_1-x_0\mid x_t=x]\\
+&=-\frac{x}{1-t}
++\frac{1}{1-t}\mathbb E[x_1\mid x_t=x]\\
+&=-\frac{x}{1-t}
+-\frac{t}{1-t}\nabla\log p_t(x).
+\end{aligned}
+$$
+
+因此
+
+$$
+\nabla\log p_t(x)
+=-\frac{x}{t}-\frac{1-t}{t}v_t(x).
+$$
+
+代回反向 SDE，得到如下用于随机采样的式子：
+
+$$
+\mathrm d x_t
+=\left[
+v_\theta(x_t,t,c)
++\frac{\sigma_t^2}{2t}
+\left(x_t+(1-t)v_\theta(x_t,t,c)\right)
+\right]\mathrm dt
++\sigma_t\,\mathrm d\bar w_t.
+$$
+
+## 策略的形式化
+
+使用 Euler-Maruyama 离散上式。为了避免反向积分中时间增量符号造成歧义，这里用正数 $h$ 表示从 $t$ 到 $t-h$ 的步长：
+
+$$
+\begin{aligned}
+\mu_\theta(x_t,t,c)
+&=x_t-h\left[
+v_\theta(x_t,t,c)
++\frac{\sigma_t^2}{2t}
+\left(x_t+(1-t)v_\theta(x_t,t,c)\right)
+\right],\\
+x_{t-h}
+&=\mu_\theta(x_t,t,c)+\sigma_t\sqrt h\,\epsilon,
+\qquad \epsilon\sim\mathcal N(0,I).
+\end{aligned}
+$$
+
+于是策略有显式的高斯密度：
+
+$$
+\pi_\theta(x_{t-h}\mid x_t,c)
+=\mathcal N\left(
+x_{t-h};\mu_\theta(x_t,t,c),\sigma_t^2hI
 \right).
 $$
 
-随后使用 PPO 风格的裁剪目标：
+若 latent 维数为 $d$，对应的 log-prob 为
 
 $$
-L_{\mathrm{GRPO}}
-=
--\mathbb{E}_{i,t}\left[
-\min\left(
-\rho_{i,t}A_i,\,
-\operatorname{clip}(\rho_{i,t},1-\epsilon,1+\epsilon)A_i
-\right)
+\log\pi_\theta
+=-\frac{\left\|x_{t-h}-\mu_\theta\right\|_2^2}
+{2\sigma_t^2h}
+-\frac d2\log(2\pi\sigma_t^2h).
+$$
+
+整条生成轨迹的概率可以写成
+
+$$
+p_\theta(x_{0:T}\mid c)
+=p(x_T)\prod_t
+\pi_\theta(x_{t-h}\mid x_t,c).
+$$
+
+采用如下的噪声调度
+
+$$
+\sigma_t=a\sqrt{\frac{t}{1-t}},
+$$
+
+其中 $a$ 控制探索强度。$a$ 太小，组内样本差异不足；增大 $a$ 会加快奖励上升。
+
+## 终点奖励怎样变成每一步的优势
+
+对同一个条件 $c$，旧策略生成 $G$ 条轨迹，得到最终结果 $x_0^1,\ldots,x_0^G$ 和奖励 $R_1,\ldots,R_G$。Flow-GRPO 不训练 value model，而是做组内标准化：
+
+$$
+\hat A_i
+=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}
+{\operatorname{std}(R_1,\ldots,R_G)+\varepsilon}.
+$$
+
+同一条轨迹的所有时间步共享 $\hat A_i$。这是一种粗粒度 credit assignment。它不能判断某一步具体改善了图片，但能判断整条轨迹比同条件下的其他轨迹更好还是更差。
+
+组内标准化也消除了 prompt 难度的平移差异。一个很难的 prompt 即使整组分数都低，相对更好的结果仍得到正优势；一个容易的 prompt 里，低于组均值的结果仍得到负优势。
+
+## 从优势到 Flow-GRPO 目标
+
+rollout 时保存旧策略的每步 log-prob。更新时固定同一组 $x_t$ 和 $x_{t-h}$，由当前策略重新计算 log-prob：
+
+$$
+r_t^i(\theta)
+=\frac{
+\pi_\theta(x_{t-h}^i\mid x_t^i,c)
+}{
+\pi_{\theta_{\mathrm{old}}}(x_{t-h}^i\mid x_t^i,c)
+}
+=\exp\left(
+\log\pi_\theta-\log\pi_{\theta_{\mathrm{old}}}
+\right).
+$$
+
+得到组内优势后，Flow-GRPO 的初步优化目标如下：
+
+$$
+\mathcal J_{\mathrm{clip}}(\theta)
+=\frac{1}{G}\sum_{i=1}^{G}\frac{1}{T}\sum_t
+\min\left[
+r_t^i(\theta)\hat A_i,
+\operatorname{clip}\left(r_t^i(\theta),1-\epsilon,1+\epsilon\right)\hat A_i
 \right].
 $$
 
-把数据流写开，就是：
+如果 $\hat A_i>0$，优化会提高这条轨迹中动作的概率，但 ratio 超过 $1+\epsilon$ 后不再增加收益；如果 $\hat A_i<0$，则压低它们的概率，并由 $1-\epsilon$ 限制单次变化。旧策略负责产生训练数据，当前策略负责解释同一批数据，importance ratio 修正二者的差别。
+
+与用于 LLM 的 GRPO 一致，Flow-GRPO 也使用 KL 散度约束（正则化），Flow-GRPO 最终的优化目标为：
+
+$$
+\mathcal J_{\mathrm{Flow\text{-}GRPO}}(\theta)
+=\mathcal J_{\mathrm{clip}}(\theta)
+-\frac{\beta}{GT}\sum_{i,t}
+D_{\mathrm{KL}}\left(
+\pi_\theta(\cdot\mid s_t^i)
+\,\|\,
+\pi_{\mathrm{ref}}(\cdot\mid s_t^i)
+\right).
+$$
+
+策略与参考策略使用相同的协方差 $\sigma_t^2hI$，只在均值上不同，因此 KL 有闭式解：
+
+$$
+\begin{aligned}
+D_{\mathrm{KL}}(\pi_\theta\|\pi_{\mathrm{ref}})
+&=\frac{\|\mu_\theta-\mu_{\mathrm{ref}}\|_2^2}
+{2\sigma_t^2h}\\
+&=\frac h2
+\left(
+\frac{1}{\sigma_t}
++\frac{\sigma_t(1-t)}{2t}
+\right)^2
+\left\|v_\theta(x_t,t,c)-v_{\mathrm{ref}}(x_t,t,c)\right\|_2^2.
+\end{aligned}
+$$
+
+这说明 KL 散度可以直接写成当前速度场和参考速度场之间的加权平方误差。设置合适的 KL 散度会减慢早期奖励上升，但能减少画质或多样性退化。
+
+整条数据流可以压缩成：
 
 ```mermaid
-%% caption: Flow-GRPO 一次策略更新
-flowchart TB
-  grpoPrompt["同一 prompt"] --> grpoOld["$$\text{旧策略 }\pi_{\mathrm{old}}\text{ 采样 }G\text{ 条 SDE 轨迹}$$"]
-  grpoOld --> grpoImgs["$$G\text{ 张最终图片}$$"]
-  grpoOld --> grpoStore["保存每步状态、动作和 log-prob"]
-  grpoImgs --> grpoReward["$$\text{奖励模型打分 }r_1,\ldots,r_G$$"]
-  grpoReward --> grpoAdv["$$\text{组内标准化得到优势 }A_i$$"]
-  grpoStore --> grpoCurr["$$\text{当前策略重算 }\log\pi_\theta$$"]
-  grpoCurr --> grpoRho["$$\text{计算 importance ratio }\rho$$"]
-  grpoAdv --> grpoPpo["PPO clip 目标"]
-  grpoRho --> grpoPpo
-  grpoPpo --> grpoTheta["$$\text{更新速度模型 }\theta$$"]
+%% caption: Flow-GRPO 的 rollout 与更新
+flowchart LR
+  C[同一条件] --> O[旧策略生成一组 SDE 轨迹]
+  O --> X[保存每步转移与旧 log-prob]
+  O --> I[得到最终图片]
+  I --> R[奖励函数打分]
+  R --> A[组内标准化优势]
+  X --> N[当前策略重算 log-prob]
+  N --> P[importance ratio 与 PPO clip]
+  A --> P
+  P --> U[更新速度模型]
 ```
 
-采样与更新必须分开理解。旧策略负责产生训练数据，当前策略负责解释这些数据；importance ratio 修正二者的差别，clip 防止一次更新离采样策略太远。若还需要更强的约束，可以加入相对参考模型的 KL penalty。
+## 训练技巧
 
-## 为什么不必随机化整条轨迹
+完整 SDE rollout 需要多次模型前向，在线收集训练数据的成本很高。因此 Flow-GRPO 的 Denoising Reduction 在训练时只使用 10 个去噪步骤而非推理时的 40 步。
 
-完整的 SDE rollout 要为每一步记录概率，更新时也要重算许多模型前向，成本很高。Flow-GRPO-Fast 采用了一个更直接的折中：大部分轨迹继续走确定性 ODE，只在随机选中的中间位置打开一个 SDE window。
-
-```mermaid
-%% caption: Flow-GRPO-Fast 的 SDE window
-flowchart TB
-  fastPrefix["共享 ODE 前缀"] --> fastWin["随机打开一个 SDE 窗口"]
-  fastWin --> fastF1["分叉 1 · ODE 收尾"]
-  fastWin --> fastF2["分叉 2 · ODE 收尾"]
-  fastWin --> fastFg["$$\text{分叉 }G\text{ · ODE 收尾}$$"]
-  fastF1 --> fastR["各自得到最终图片和奖励"]
-  fastF2 --> fastR
-  fastFg --> fastR
-```
-
-同一个 prompt 的多个样本可以共享分叉前的计算。训练也只需重算窗口内的随机步骤。只要最终图片仍由这些分叉状态决定，末端奖励就能为窗口内的动作提供学习信号。
-
-代价同样明确：只训练少数步骤会引入偏差。窗口太窄，模型可调整的决策有限；窗口太靠近纯噪声，奖励信号很间接；窗口太靠近干净图片，低噪声区域的概率比又可能非常尖锐。窗口位置因此不是单纯的加速参数，而是在训练成本、探索空间和 credit assignment 之间做取舍。
+它依赖一个很实用的观察：用于 RL 的训练图片不必达到最终部署质量。只要 10 步生成的粗糙图片仍能让奖励函数区分好坏，轨迹就能提供有效的策略梯度。
 
 ## AIGC 的奖励函数设计
 
