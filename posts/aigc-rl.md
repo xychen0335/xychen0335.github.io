@@ -12,11 +12,11 @@ isTop: false
 
 对同一个 prompt 生成八张图，奖励模型很容易选出其中更好的几张。真正困难的是下一步：怎样把最终图片的一个分数，传回几十个去噪步骤从而完成策略模型的更新呢？
 
-[Flow-GRPO](https://arxiv.org/abs/2505.05470) 提供了一个可行的思路。其把 flow matching 的去噪过程建模为 MDP；再把确定性 ODE 改写为具有相同边缘分布的 SDE，让每一步都有可计算的高斯概率；最后用组内相对优势和 PPO clip 更新这些转移概率。
+[Flow-GRPO](https://arxiv.org/abs/2505.05470) 提供了一个可行的思路。其把 Flow Matching 的去噪过程建模为 MDP；再把确定性 ODE 改写为具有相同边缘分布的 SDE，让每一步都有可计算的高斯概率；最后用组内相对优势和 PPO clip 更新这些转移概率。
 
-## 从 rectified flow 到 MDP
+## 从 Rectified Flow 到 MDP
 
-Rectified flow 在数据 $x_0$ 和高斯噪声 $x_1$ 之间做线性插值：
+Rectified Flow 在数据 $x_0$ 和高斯噪声 $x_1$ 之间做线性插值：
 
 $$
 x_t=(1-t)x_0+t x_1,\qquad t\in[0,1].
@@ -36,7 +36,7 @@ $$
 \mathrm d x_t=v_\theta(x_t,t,c)\,\mathrm dt.
 $$
 
-去噪过程可以建模为 MDP：
+去噪过程可以建模为 MDP($\mathcal{S}, \mathcal{A}, \rho_0$, P, R)：
 
 | MDP 元素 | Flow matching 中的含义 |
 |---|---|
