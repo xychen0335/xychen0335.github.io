@@ -106,10 +106,10 @@ fake teacher 的训练数据来自学生：对 $x_0^g$ 加噪后，以 $\epsilon
 
 - **real teacher**：冻结的预训练模型，只负责给出目标分布的 score；
 - **student / generator $G_\theta$**：最终要保留下来的少步生成器；
-- **fake teacher $F_\phi$**：可训练的去噪模型，估计学生当前分布在各个噪声时刻的 score；
-- **GAN discriminator $D_\psi$**：可选的真假分类器，用真实样本与学生样本训练。
+- **fake teacher $D_{\mathrm{fake}}$**：参数为 $\phi$ 的可训练去噪模型，估计学生当前分布在各个噪声时刻的 score；
+- **GAN discriminator $C_\omega$**：可选的真假分类器，用真实样本与学生样本训练。
 
-fake teacher 和 discriminator 很容易被混为一谈，但二者并不等价。$F_\phi$ 接收带噪状态和时间，输出速度或 score，回答“学生分布在这里朝哪个方向变化”；$D_\psi$ 输出一个真假 logit，回答“这个样本更像真实数据还是生成数据”。前者构造 DMD 的分布梯度，后者提供直接来自真实数据的密度比信号。
+fake teacher 和 discriminator 很容易被混为一谈，但二者并不等价。$D_{\mathrm{fake}}$ 接收带噪状态和时间，输出速度或 score，回答“学生分布在这里朝哪个方向变化”；$C_\omega$ 输出一个真假 logit，回答“这个样本更像真实数据还是生成数据”。前者构造 DMD 的分布梯度，后者提供直接来自真实数据的密度比信号。
 
 ### 1.4 GAN 的作用
 
@@ -119,24 +119,24 @@ fake teacher 和 discriminator 很容易被混为一谈，但二者并不等价�
 
 $$
 L_D
-=\mathbb{E}\left[\operatorname{softplus}(-D_\psi(x^{\text{real}}))\right]
-+\mathbb{E}\left[\operatorname{softplus}(D_\psi(\operatorname{sg}(x^g)))\right].
+=\mathbb{E}\left[\operatorname{softplus}(-C_\omega(x^{\text{real}}))\right]
++\mathbb{E}\left[\operatorname{softplus}(C_\omega(\operatorname{sg}(x^g)))\right].
 $$
 
 学生则增加对应的 non-saturating generator loss：
 
 $$
-L_{\text{GAN}}^G
-=\mathbb{E}\left[\operatorname{softplus}(-D_\psi(x^g))\right].
+L_{\text{GAN}}
+=\mathbb{E}\left[\operatorname{softplus}(-C_\omega(x^g))\right].
 $$
 
-更新学生时冻结判别器参数，但保留 $D_\psi(x^g)$ 对 $x^g$ 的梯度，使真假信号能够传回 $G_\theta$。有些实现会先给真假 latent 加入随机强度的噪声再判别，这相当于让判别器在多个噪声尺度上比较两种分布，而不是死盯干净样本的局部纹理。
+更新学生时冻结判别器参数，但保留 $C_\omega(x^g)$ 对 $x^g$ 的梯度，使真假信号能够传回 $G_\theta$。有些实现会先给真假 latent 加入随机强度的噪声再判别，这相当于让判别器在多个噪声尺度上比较两种分布，而不是死盯干净样本的局部纹理。
 
-最终的学生目标可以概括为
+最终的训练目标可以概括为
 
 $$
-L_G=\lambda_{\text{DM}}L_{\text{DMD}}
-+\lambda_{\text{GAN}}L_{\text{GAN}}^G.
+L=\lambda_{\text{DM}}L_{\text{DMD}}
++\lambda_{\text{GAN}}L_{\text{GAN}}.
 $$
 
 DMD 项提供老师分布与学生分布之间的方向，GAN 项把这个方向重新锚定到真实数据。GAN 是校正项，不是用判别器替代 real/fake score difference。
@@ -151,20 +151,20 @@ flowchart TB
   dmdZ["$$\text{噪声 }z+\text{条件 }c$$"] --> dmdXg["$$\text{学生 }G_\theta\text{ 少步生成 }x^{g}$$"]
   dmdXg --> dmdFork{本轮如何更新}
 
-  dmdFork -->|"$$\text{每隔 }K\text{ 次}$$"| dmdSu1["$$\text{冻结 real teacher、}F_\phi\text{、}D_\psi$$"]
+  dmdFork -->|"$$\text{每隔 }K\text{ 次}$$"| dmdSu1["$$\text{冻结 real teacher、}D_{\mathrm{fake}}\text{、}C_\omega$$"]
   dmdSu1 --> dmdSu2["$$L_{\mathrm{DMD}}\text{：real / fake score 差}$$"]
   dmdSu1 --> dmdSu3["$$L_{\mathrm{GAN}}\text{：判别器的真假信号}$$"]
   dmdSu2 --> dmdSu4["$$\text{更新 }\theta$$"]
   dmdSu3 --> dmdSu4
 
   dmdFork -->|"每次"| dmdGu1["$$\text{停止梯度 }\operatorname{sg}(x^{g})$$"]
-  dmdGu1 --> dmdGu2["$$F_\phi\text{：加噪后回归 }\epsilon-x^{g}$$"]
-  dmdGu1 --> dmdGu3["$$D_\psi\text{：真样本 vs }\operatorname{sg}(x^{g})$$"]
+  dmdGu1 --> dmdGu2["$$D_{\mathrm{fake}}\text{：加噪后回归 }\epsilon-x^{g}$$"]
+  dmdGu1 --> dmdGu3["$$C_\omega\text{：真样本 vs }\operatorname{sg}(x^{g})$$"]
   dmdGu2 --> dmdGu4["$$\text{更新 }\phi$$"]
-  dmdGu3 --> dmdGu5["$$\text{更新 }\psi$$"]
+  dmdGu3 --> dmdGu5["$$\text{更新 }\omega$$"]
 ```
 
-更新学生时，real teacher、fake teacher 和 discriminator 的参数全部冻结，但它们对学生输出给出的梯度方向仍会传给 $G_\theta$。随后学生样本停止梯度，用来训练另外两组参数：$F_\phi$ 通过去噪损失追踪当前的 $p_\theta$，$D_\psi$ 通过真假分类损失学习数据分布与生成分布的差别。代码里这两项常被合并进同一个 guidance/critic optimizer step，但它们仍是作用不同的两种损失。
+更新学生时，real teacher、fake teacher 和 discriminator 的参数全部冻结，但它们对学生输出给出的梯度方向仍会传给 $G_\theta$。随后学生样本停止梯度，用来训练另外两组参数：$D_{\mathrm{fake}}$ 通过去噪损失追踪当前的 $p_\theta$，$C_\omega$ 通过真假分类损失学习数据分布与生成分布的差别。代码里这两项常被合并进同一个 guidance/critic optimizer step，但它们仍是作用不同的两种损失。
 
 这里的 $K$ 体现 TTUR（Two-Time-Scale Update Rule）：critic 和判别器可以每次迭代都更新，学生则每隔若干次再更新。例如 $K=5$ 表示 guidance 连续更新五次，学生只更新一次。原因是学生一动，fake teacher 要拟合的分布也跟着动；若二者同速甚至学生更快，$s_{\text{fake}}$ 会长期滞后，学生拿到的就不是当前分布与目标分布之差。TTUR 的要点不是固定采用 $5{:}1$，而是让分布估计器有时间追上移动中的生成器。
 
@@ -184,78 +184,198 @@ DMD 可以把几十步压到固定的 4 步或 8 步，但如果训练只约束�
 
 CDM 的全称是 Continuous-Time Distribution Matching。它把问题拆成两部分：先用动态的连续时间表覆盖学生真实会经过的轨迹，再把约束从轨迹上的锚点延伸到锚点之间的连续位置。目标不是让两个预测在数值上简单相等，而是让这些位置对应的生成分布都朝目标数据分布对齐。
 
+为了把三项损失写在同一套记号里，下文用
+
+$$
+D_\theta(x_\sigma,\sigma,c)
+=x_\sigma-\sigma v_\theta(x_\sigma,\sigma,c)
+$$
+
+表示学生从带噪 latent 中给出的干净样本估计。$D_{\mathrm{real}}$ 是冻结的 real teacher，$D_{\mathrm{fake}}$ 是参数为 $\phi$ 的在线 fake teacher，$\operatorname{sg}[\cdot]$ 表示停止梯度。
+
 ### 2.2 先从学生自己的 ODE 轨迹取样
 
-训练开始时，随机采样一组连续时间锚点，再用当前学生从纯噪声沿 ODE 反向生成：
+每次训练先随机采样轨迹长度 $N\sim\mathcal U\{1,\ldots,N_{\max}\}$，再构造严格递减的连续时间表
+
+$$
+1=\sigma_1>\sigma_2>\cdots>\sigma_N>0.
+$$
+
+用当前学生从纯噪声沿 ODE 反向生成：
 
 $$
 x_{\sigma_{i+1}}
-=x_{\sigma_i}+(\sigma_{i+1}-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i).
+=x_{\sigma_i}+(\sigma_{i+1}-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i,c).
 $$
 
-这条轨迹不是固定网格，而是每次都采用不同的连续时间表。训练从中随机选一个状态 $(x_{\sigma_i},\sigma_i)$，使监督覆盖学生自己产生的中间状态，而不只是对真实图片加噪得到的理想状态。
-
-接着再选择一个更小的连续噪声强度 $\sigma_s\leq\sigma_i$，用锚点处的速度做一次 Euler 外推：
+这条轨迹不使用固定网格。训练从中均匀抽取一个锚点 $(x_{\sigma_i},\sigma_i)$，并先计算该位置的局部干净样本估计：
 
 $$
-\tilde{x}_{\sigma_s}
-=x_{\sigma_i}+(\sigma_s-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i),
+\hat{x}_0^{(i)}=D_\theta(x_{\sigma_i},\sigma_i,c).
 $$
 
-再让学生在 $(\tilde{x}_{\sigma_s},\sigma_s)$ 上重新预测
+$L_{\mathrm{CA}}$ 和 $L_{\mathrm{DM}}$ 都从这个 on-trajectory 估计出发。动态时间表改变的是锚点的覆盖范围，不是分布匹配的基本梯度。
+
+### 2.3 锚点上的两项损失：CA 与 DM
+
+第一项是 CFG Augmentation。将 $\hat{x}_0^{(i)}$ 重新加噪到独立采样的 $\tau\sim\mathcal U(0,1]$：
 
 $$
-\hat{x}_0^s=\tilde{x}_{\sigma_s}-\sigma_s v_\theta(\tilde{x}_{\sigma_s},\sigma_s).
+z_\tau=(1-\tau)\operatorname{sg}[\hat{x}_0^{(i)}]+\tau\epsilon_\tau.
 $$
 
-这里的 $\tilde{x}_{\sigma_s}$ 一般不在原本的离散轨迹上，因此是一个 off-trajectory latent。它主动暴露了一个问题：锚点处预测的速度，能否把状态带到锚点之间仍然合理的位置？如果不能，模型即使在所有锚点上表现正常，大步采样时仍会在两个锚点之间偏离。
-
-### 2.3 从锚点内匹配到锚点间匹配
-
-无论约束的是轨迹锚点，还是外推得到的连续位置，CDM 都不需要找一张目标图片做像素回归。以外推位置为例，先由学生得到 $\hat{x}_0^s$，再随机选择 teacher noise $\sigma_t$：
+冻结的 real teacher 分别计算 conditional 和 unconditional 预测，两者的差是 CFG 方向：
 
 $$
-x_{\sigma_t}=(1-\sigma_t)\operatorname{sg}(\hat{x}_0^s)+\sigma_t\epsilon.
+\Delta_{\mathrm{CA}}
+=\alpha\left[D_{\mathrm{real}}(z_\tau,\tau,c)-D_{\mathrm{real}}(z_\tau,\tau,\varnothing)\right],
 $$
 
-real teacher 与 fake teacher 在这个点分别给出 $\hat{x}_0^{\text{real}}$ 和 $\hat{x}_0^{\text{fake}}$，随后沿用 DMD 的分布匹配方向：
+$\alpha$ 是 guidance scale。动态权重 $w_\tau$ 用来归一化梯度尺度，对应的伪回归损失为
 
 $$
-g_{\text{CDM}}
-=\frac{\hat{x}_0^{\text{real}}-\hat{x}_0^{\text{fake}}}{Z}.
+L_{\mathrm{CA}}
+=\frac12\left\|
+\hat{x}_0^{(i)}-
+\operatorname{sg}\!\left[
+\hat{x}_0^{(i)}+w_\tau\Delta_{\mathrm{CA}}
+\right]
+\right\|_2^2.
 $$
 
-因此，DMD 与 CDM 的主要差别不在最后的损失形式，而在“从哪里产生要被约束的学生样本”：
-
-| 方法 | 学生样本的位置               | 学到的能力                         |
-| ---- | ---------------------------- | ---------------------------------- |
-| DMD  | 生成器输出或固定少步轨迹     | 让少步生成分布接近目标分布         |
-| CDM  | 动态轨迹锚点及其间的外推位置 | 让连续时间上的速度场都指向合理分布 |
-
-### 2.4 三种约束各自解决什么
-
-CDM 的训练可以理解为三种互补约束：
-
-1. **CFG augmentation（CA）**：老师分别做 conditional 与 unconditional 预测，把 classifier-free guidance 的方向交给只运行 conditional 分支的学生。它主要对齐文本条件，避免加速后条件控制变弱。
-2. **On-trajectory distribution matching**：在学生在线生成的轨迹锚点上做分布匹配，让少步反向过程经过的状态持续贴近目标分布。
-3. **Off-trajectory continuous distribution matching**：从锚点向随机连续时间外推，再对外推状态做分布匹配，专门修补两个锚点之间的 inter-anchor inconsistency。
-
-这三项只更新学生。real teacher 的 conditional、unconditional 预测以及 fake teacher 的预测都停止梯度，最后形成一个加权总损失：
+第二项是锚点上的 Distribution Matching。它使用另一个独立噪声时刻 $\tilde\tau\sim\mathcal U(0,1]$：
 
 $$
-L_{\text{student}}
-=\lambda_{\text{CA}}L_{\text{CA}}
-+\lambda_{\text{on}}L_{\text{on-DM}}
-+\lambda_{\text{off}}L_{\text{off-DM}}.
+z_{\tilde\tau}
+=(1-\tilde\tau)\operatorname{sg}[\hat{x}_0^{(i)}]
++\tilde\tau\epsilon_{\tilde\tau},
 $$
 
-三个方向不应混成一个含糊的“一致性损失”：CA 负责条件对齐，on-DM 负责学生已经走到的轨迹状态，off-DM 才负责锚点之间的连续时间空隙。
+然后计算 real/fake 差分
+
+$$
+\Delta_{\mathrm{DM}}
+=D_{\mathrm{real}}(z_{\tilde\tau},\tilde\tau,c)
+-D_{\mathrm{fake}}(z_{\tilde\tau},\tilde\tau,c),
+$$
+
+以及损失
+
+$$
+L_{\mathrm{DM}}
+=\frac12\left\|
+\hat{x}_0^{(i)}-
+\operatorname{sg}\!\left[
+\hat{x}_0^{(i)}+w_{\tilde\tau}\Delta_{\mathrm{DM}}
+\right]
+\right\|_2^2.
+$$
+
+$w_\tau$ 与 $w_{\tilde\tau}$ 是按样本计算的动态归一化权重。例如，CA 中可写为
+
+$$
+w_\tau
+=\left\|D_{\mathrm{real}}(z_\tau,\tau,c)-\hat{x}_0^{(i)}\right\|_1^{-1}.
+$$
+
+$w_{\tilde\tau}$ 和 $w_{\hat\tau}$ 沿用同一形式，只需换成当前损失使用的加噪样本和局部干净样本估计。
+
+这两个 MSE 都是传递梯度的伪目标。由于方括号内停止梯度，有
+
+$$
+\frac{\partial L_{\mathrm{CA}}}{\partial\hat{x}_0^{(i)}}
+=-w_\tau\Delta_{\mathrm{CA}},\qquad
+\frac{\partial L_{\mathrm{DM}}}{\partial\hat{x}_0^{(i)}}
+=-w_{\tilde\tau}\Delta_{\mathrm{DM}}.
+$$
+
+梯度下降因而沿 $+\Delta$ 方向更新学生预测。$L_{\mathrm{CA}}$ 把老师的 CFG 方向传给学生；$L_{\mathrm{DM}}$ 则把学生当前分布推向老师的 CFG-free 条件分布。两者都没有回归某张真实图片。
+
+从 score 角度看，flow matching 下的 Tweedie 公式给出
+
+$$
+D(z_u,u,c)=\frac{z_u+u^2\nabla_{z_u}\log p(z_u\mid c)}{1-u}.
+$$
+
+所以
+
+$$
+D_{\mathrm{real}}-D_{\mathrm{fake}}
+=\frac{u^2}{1-u}
+\left[s_{\mathrm{real}}(z_u,u,c)-s_{\mathrm{fake}}(z_u,u,c)\right].
+$$
+
+这正是 DMD 中的 real/fake score difference。这一次它被施加在动态采样的轨迹锚点上。
+
+### 2.4 锚点外的损失：CDM
+
+动态时间表扩大了锚点的覆盖范围，但每次损失仍只监督一个轨迹锚点。为了直接检查锚点之间的速度场，从 $(0,1]$ 独立采样 $\sigma_i'$，并沿锚点处的速度做一次 Euler 外推：
+
+$$
+x_{\sigma_i'}
+=x_{\sigma_i}
++(\sigma_i'-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i,c).
+$$
+
+这里的 $\sigma_i'$ 不要求小于 $\sigma_i$。它与积分时间表独立，所以 $x_{\sigma_i'}$ 可以落在相邻锚点之间，也可以超出当前的局部步长。由于真实 ODE 轨迹一般是弯曲的，这个线性外推点通常不在学生刚刚生成的轨迹上。
+
+学生在外推点重新给出局部干净样本估计：
+
+$$
+\hat{x}_0^{(i')}
+=D_\theta(x_{\sigma_i'},\sigma_i',c).
+$$
+
+再把它加噪到独立采样的 $\hat\tau\sim\mathcal U(0,1]$：
+
+$$
+z_{\hat\tau}
+=(1-\hat\tau)\operatorname{sg}[\hat{x}_0^{(i')}]
++\hat\tau\epsilon_{\hat\tau}.
+$$
+
+外推点的 real/fake 方向与锚点 DM 形式相同：
+
+$$
+\Delta_{\mathrm{CDM}}
+=D_{\mathrm{real}}(z_{\hat\tau},\hat\tau,c)
+-D_{\mathrm{fake}}(z_{\hat\tau},\hat\tau,c),
+$$
+
+$$
+L_{\mathrm{CDM}}
+=\frac12\left\|
+\hat{x}_0^{(i')}-
+\operatorname{sg}\!\left[
+\hat{x}_0^{(i')}+w_{\hat\tau}\Delta_{\mathrm{CDM}}
+\right]
+\right\|_2^2.
+$$
+
+$L_{\mathrm{DM}}$ 从轨迹锚点处的 $\hat{x}_0^{(i)}$ 回传。$L_{\mathrm{CDM}}$ 的路径还包含由锚点速度构造的 $x_{\sigma_i'}$ 以及外推点上的局部预测 $D_\theta(x_{\sigma_i'},\sigma_i',c)$。这条路径直接约束大步 Euler 积分会遇到的 off-trajectory 区域。
+
+结合以上三点，最终的损失函数为：
+
+$$
+L
+=L_{\mathrm{CA}}+L_{\mathrm{DM}}+L_{\mathrm{CDM}}.
+$$
+
+三项损失的输入位置和职责可以归纳为：
+
+| 损失 | 学生接受梯度的位置 | teacher 差分 | 直接作用 |
+| ---- | -------------------------- | ------------ | -------- |
+| $L_{\mathrm{CA}}$ | 动态轨迹锚点 | conditional $-$ unconditional real teacher | 补入 CFG 的文本对齐方向 |
+| $L_{\mathrm{DM}}$ | 动态轨迹锚点 | real teacher $-$ fake teacher | 对齐 on-trajectory 分布 |
+| $L_{\mathrm{CDM}}$ | 速度外推得到的锚点外位置 | real teacher $-$ fake teacher | 修补 inter-anchor inconsistency |
+
+这三项只在 student update 时更新 $\theta$。real teacher 的 conditional、unconditional 预测以及 fake teacher 的预测都作为停止梯度的目标信号。
 
 ### 2.5 为什么 CDM 不需要 GAN
 
 DMD2 引入 GAN，主要是为了修补离散分布匹配留下的画质问题。固定的少数时间点没有约束锚点之间的速度场，再叠加反向 KL 的 mode-seeking 倾向，学生容易产生过度平滑、纹理丢失和局部伪影。判别器直接比较真实样本与生成样本，能把这部分细节信号补回来。
 
-CDM 选择从分布匹配本身入手。动态时间表让 on-DM 覆盖整个时间区间，off-DM 又专门把 Euler 外推造成的锚点间漂移拉回目标分布；CA 则补上文本条件方向。原来需要 GAN 校正的细节损失，很大一部分来自监督位置过于稀疏，而不是 real/fake score difference 完全无法提供画质信号。把分布梯度放到更多轨迹位置后，CDM 可以只用 CA、on-DM 和 off-DM 得到足够的监督，不必再训练一个真假判别器。
+CDM 选择从分布匹配本身入手。动态时间表让 $L_{\mathrm{DM}}$ 覆盖整个时间区间，$L_{\mathrm{CDM}}$ 又专门把 Euler 外推造成的锚点间漂移拉回目标分布；$L_{\mathrm{CA}}$ 则补上文本条件方向。原来需要 GAN 校正的细节损失，很大一部分来自监督位置过于稀疏，而不是 real/fake score difference 完全无法提供画质信号。把分布梯度放到更多轨迹位置后，CDM 可以只用 CA、DM 和 CDM 三项损失得到足够的监督，不必再训练一个真假判别器。
 
 ### 2.6 一次连续时间蒸馏怎样更新
 
@@ -263,7 +383,7 @@ CDM 选择从分布匹配本身入手。动态时间表让 on-DM 覆盖整个时
 
 - **real teacher** 始终冻结，提供 conditional、unconditional 和目标分布的速度预测；
 - **student $G_\theta$** 产生少步 ODE 轨迹，也是最终保留的模型；
-- **fake teacher $F_\phi$** 单独训练，持续拟合学生在线轨迹形成的分布。
+- **fake teacher $D_{\mathrm{fake}}$** 单独训练，持续拟合学生在线轨迹形成的分布。
 
 一次外层迭代可以写成：
 
@@ -278,19 +398,37 @@ flowchart TB
   cdmFu1 --> cdmFu2["$$\text{回归速度目标 }\epsilon-x_0$$"]
   cdmFu2 --> cdmFu3["$$\text{更新 }\phi$$"]
 
-  cdmFork -->|"$$\text{每隔 }R\text{ 次}$$"| cdmSu1["$$\text{冻结 real teacher 与 }F_\phi$$"]
+  cdmFork -->|"$$\text{每隔 }R\text{ 次}$$"| cdmSu1["$$\text{冻结 real teacher 与 }D_{\mathrm{fake}}$$"]
   cdmSu1 --> cdmSu2["CA：CFG 条件对齐"]
-  cdmSu1 --> cdmSu3["on-DM：锚点上的分布匹配"]
-  cdmSu1 --> cdmSu4["$$\text{锚点 Euler 外推到 }\sigma_s$$"]
-  cdmSu4 --> cdmSu5["off-DM：外推位置上的分布匹配"]
+  cdmSu1 --> cdmSu3["DM：动态锚点上的分布匹配"]
+  cdmSu1 --> cdmSu4["$$\text{锚点 Euler 外推到 }\sigma_i'$$"]
+  cdmSu4 --> cdmSu5["CDM：外推位置上的分布匹配"]
   cdmSu2 --> cdmSu6["$$\text{更新 }\theta$$"]
   cdmSu3 --> cdmSu6
   cdmSu5 --> cdmSu6
 ```
 
-第一条分支只更新 $\phi$。轨迹和其中的 $x_0$ 都停止梯度，因为这一阶段只是让 fake teacher 学会描述学生当前的分布。第二条分支只更新 $\theta$：CA 中的 conditional/unconditional teacher 预测停止梯度；两项 distribution matching 中的 real/fake 预测也停止梯度，梯度只穿过学生在轨迹锚点或外推位置上的速度预测。
+第一条分支只更新 $\phi$。在抽取的轨迹锚点上，先使用学生的局部预测 $\hat{x}_0^{(i)}$，再重新加噪：
 
-$R$ 与前面的 TTUR 是同一个思想：fake teacher 更新得更频繁，学生更新得更慢。例如 $R=2$ 表示先做两次 fake-teacher update，再做一次 student update。这样学生计算 real/fake score difference 时，$F_\phi$ 描述的是较新的学生分布，而不是若干步之前的旧分布。
+$$
+z_{\tau_\phi}
+=(1-\tau_\phi)\operatorname{sg}[\hat{x}_0^{(i)}]
++\tau_\phi\epsilon_\phi.
+$$
+
+fake teacher 使用标准 flow matching 损失追踪学生当前分布：
+
+$$
+L_{\mathrm{fake}}
+=\left\|
+v_\phi(z_{\tau_\phi},\tau_\phi,c)
+-\left(\epsilon_\phi-\operatorname{sg}[\hat{x}_0^{(i)}]\right)
+\right\|_2^2.
+$$
+
+这一阶段不更新学生。第二条分支只更新 $\theta$：CA 中的 conditional/unconditional teacher 预测停止梯度；DM 和 CDM 中的 real/fake 预测也停止梯度，梯度穿过学生在轨迹锚点或外推位置上的预测。
+
+$R$ 与前面的 TTUR 是同一个思想：fake teacher 更新得更频繁，学生更新得更慢。例如 $R=2$ 表示先做两次 fake-teacher update，再做一次 student update。这样学生计算 real/fake score difference 时，$D_{\mathrm{fake}}$ 描述的是较新的学生分布，而不是若干步之前的旧分布。
 
 有些实现还会在 fake teacher 完成梯度更新后做一次很弱的参数融合：
 
@@ -301,7 +439,7 @@ $$
 
 这一步不是用 EMA 取代 fake teacher 的去噪训练，而是给它注入少量最新的学生参数，减轻两者长期漂移。另一个常见的 student EMA 只用于验证和保存更平滑的学生权重，不参与 real/fake score difference；两种 EMA 的用途不能混为一谈。
 
-把更新顺序串起来看，动态时间表负责覆盖轨迹，fake teacher update 负责刷新学生分布的参照，CA 与 on-DM 约束轨迹内状态，off-DM 约束大步外推。学生最终学到的才不是一串固定跳点，而是可在连续时间上使用的少步速度场。
+把更新顺序串起来看，动态时间表负责覆盖轨迹，fake teacher update 负责刷新学生分布的参照，CA 与 DM 约束轨迹内状态，CDM 约束大步外推。学生最终学到的才不是一串固定跳点，而是可在连续时间上使用的少步速度场。
 
 ## 3. 从离散分布匹配到连续速度场
 
@@ -310,11 +448,11 @@ DMD 与 CDM 不是两条并列路线。后者继承了前者的 real/fake score 
 | 方法 | 学生在哪里接受监督         | 核心更新方向               | 主要解决的问题             |
 | ---- | -------------------------- | -------------------------- | -------------------------- |
 | DMD  | 生成结果或固定少步轨迹     | real/fake score difference | 少步输出的分布是否正确     |
-| CDM  | 动态轨迹锚点与连续外推位置 | CA + on/off-trajectory DM  | 大步采样时锚点之间是否自洽 |
+| CDM  | 动态轨迹锚点与连续外推位置 | CA + DM + CDM             | 大步采样时锚点之间是否自洽 |
 
 两种方法最容易被忽略的共同点，是 fake teacher 必须比学生更新得更及时。它不是一个固定老师，而是学生当前分布的估计器。学生一动，它描述的对象就变了。无论采用哪种时间表，训练稳定性都依赖同一个条件：计算分布差之前，先保证“当前位置”的估计没有落后太远。
 
 ## 参考
 
-- [DMD2](https://github.com/tianweiy/DMD2)：Distribution Matching Distillation 的官方实现。
-- [Continuous-Time Distribution Matching 论文](https://arxiv.org/abs/2605.06376)与[官方实现](https://github.com/byliutao/CDM)。
+- [DMD2](https://arxiv.org/abs/2405.14867)
+- [Continuous-Time Distribution Matching](https://arxiv.org/abs/2605.06376)
