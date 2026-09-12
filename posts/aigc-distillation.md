@@ -22,31 +22,31 @@ isTop: false
 
 ## 0. 预备知识：flow matching 在预测什么
 
-先统一记号。设干净样本为 $x_0$，高斯噪声为 $\epsilon$，用噪声强度 $\sigma\in[0,1]$ 构造直线路径：
+先统一记号。设干净样本为 $x_0$，高斯噪声为 $\epsilon$，基于流匹配框架，对于 $t\in[0, 1]$，有如下扩散路径：
 
 $$
-x_\sigma=(1-\sigma)x_0+\sigma\epsilon.
+x_t=(1-t)x_0+t\epsilon.
 $$
 
-$\sigma=0$ 时是数据，$\sigma=1$ 时接近纯噪声。对应的速度目标为
+$t=0$ 时是数据，$t=1$ 时接近纯噪声。对应的速度目标为
 
 $$
-v^*(x_\sigma,\sigma)=\epsilon-x_0.
+v^*(x_t,t)=\epsilon-x_0.
 $$
 
 模型预测速度 $v_\theta$ 后，可以直接估计这条路径对应的干净样本：
 
 $$
-\hat{x}_0=x_\sigma-\sigma v_\theta(x_\sigma,\sigma).
+\hat{x}_0=x_t-t v_\theta(x_t,t).
 $$
 
 推理时，Euler 更新可以写成
 
 $$
-x_{\sigma'}=x_\sigma+(\sigma'-\sigma)v_\theta(x_\sigma,\sigma),\qquad \sigma'<\sigma.
+x_{t'}=x_t+(t'-t)v_\theta(x_t,t),\qquad t'<t.
 $$
 
-普通模型需要很多个很小的 $\sigma\to\sigma'$ 更新。DMD 和 CDM 的目标，都是让学生在步长很大时仍能落到正确的生成分布上。
+普通模型需要很多个很小的 $t \to t'$ 更新。DMD 和 CDM 的目标，都是让学生在步长很大时仍能落到正确的生成分布上。
 
 ## 1. 蒸馏的起点：不追轨迹，只追分布
 
@@ -58,7 +58,7 @@ Distribution Matching Distillation（DMD）不要求学生复刻某一条老师�
 
 $$
 \nabla_{x}D_{\mathrm{KL}}(p_{\text{fake}}\|p_{\text{real}})
-\propto s_{\text{fake}}(x_\sigma,\sigma)-s_{\text{real}}(x_\sigma,\sigma).
+\propto s_{\text{fake}}(x_t,t)-s_{\text{real}}(x_t,t).
 $$
 
 这里有两个“老师”：
@@ -70,17 +70,17 @@ $$
 
 ### 1.2 在 flow matching 中怎样得到这个方向
 
-训练时不必显式计算概率密度。学生先从噪声生成 $x_0^g=G_\theta(z,c)$，再随机选择 $\sigma$，把它重新加噪成
+训练时不必显式计算概率密度。学生先从噪声生成 $x_0^g=G_\theta(z,c)$，再随机选择 $t$，把它重新加噪成
 
 $$
-x_\sigma^g=(1-\sigma)x_0^g+\sigma\epsilon.
+x_t^g=(1-t)x_0^g+t\epsilon.
 $$
 
-real teacher 和 fake teacher 分别从同一个 $x_\sigma^g$ 预测速度，再换算为干净样本估计：
+real teacher 和 fake teacher 分别从同一个 $x_t^g$ 预测速度，再换算为干净样本估计：
 
 $$
-\hat{x}_0^{\text{real}}=x_\sigma^g-\sigma v_{\text{real}},\qquad
-\hat{x}_0^{\text{fake}}=x_\sigma^g-\sigma v_{\text{fake}}.
+\hat{x}_0^{\text{real}}=x_t^g-t v_{\text{real}},\qquad
+\hat{x}_0^{\text{fake}}=x_t^g-t v_{\text{fake}}.
 $$
 
 于是学生的更新方向可以写成
@@ -172,7 +172,7 @@ DMD2 去掉昂贵的逐点回归后，正是靠这组不对称更新维持训练
 
 ### 1.6 少步学生的训练分布问题
 
-训练多步学生时，还有一个容易被忽略的问题。若直接对真实图加噪，学生看到的是 $q(x_\sigma\mid x_0^{\text{real}})$；推理时它看到的却是自己上一大步产生的中间状态。步数越少，每一步误差越大，两种输入分布的差距也越明显。
+训练多步学生时，还有一个容易被忽略的问题。若直接对真实图加噪，学生看到的是 $q(x_t\mid x_0^{\text{real}})$；推理时它看到的却是自己上一大步产生的中间状态。步数越少，每一步误差越大，两种输入分布的差距也越明显。
 
 DMD2 的 backward simulation 先让学生从纯噪声沿自己的少步轨迹回放，再从中抽取中间状态训练。这样，学生看到的就是推理时真正会遇到的输入分布。它解决的是 exposure bias，而不是改变 DMD 的分布匹配目标。
 
@@ -187,8 +187,8 @@ CDM 的全称是 Continuous-Time Distribution Matching。它把问题拆成两�
 为了把三项损失写在同一套记号里，下文用
 
 $$
-D_\theta(x_\sigma,\sigma,c)
-=x_\sigma-\sigma v_\theta(x_\sigma,\sigma,c)
+D_\theta(x_t,t,c)
+=x_t-t v_\theta(x_t,t,c)
 $$
 
 表示学生从带噪 latent 中给出的干净样本估计。$D_{\mathrm{real}}$ 是冻结的 real teacher，$D_{\mathrm{fake}}$ 是参数为 $\phi$ 的在线 fake teacher，$\operatorname{sg}[\cdot]$ 表示停止梯度。
@@ -198,20 +198,20 @@ $$
 每次训练先随机采样轨迹长度 $N\sim\mathcal U\{1,\ldots,N_{\max}\}$，再构造严格递减的连续时间表
 
 $$
-1=\sigma_1>\sigma_2>\cdots>\sigma_N>0.
+1=t_1>t_2>\cdots>t_N>0.
 $$
 
 用当前学生从纯噪声沿 ODE 反向生成：
 
 $$
-x_{\sigma_{i+1}}
-=x_{\sigma_i}+(\sigma_{i+1}-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i,c).
+x_{t_{i+1}}
+=x_{t_i}+(t_{i+1}-t_i)v_\theta(x_{t_i},t_i,c).
 $$
 
-这条轨迹不使用固定网格。训练从中均匀抽取一个锚点 $(x_{\sigma_i},\sigma_i)$，并先计算该位置的局部干净样本估计：
+这条轨迹不使用固定网格。训练从中均匀抽取一个锚点 $(x_{t_i},t_i)$，并先计算该位置的局部干净样本估计：
 
 $$
-\hat{x}_0^{(i)}=D_\theta(x_{\sigma_i},\sigma_i,c).
+\hat{x}_0^{(i)}=D_\theta(x_{t_i},t_i,c).
 $$
 
 $L_{\mathrm{CA}}$ 和 $L_{\mathrm{DM}}$ 都从这个 on-trajectory 估计出发。动态时间表改变的是锚点的覆盖范围，不是分布匹配的基本梯度。
@@ -309,21 +309,21 @@ $$
 
 ### 2.4 锚点外的损失：CDM
 
-动态时间表扩大了锚点的覆盖范围，但每次损失仍只监督一个轨迹锚点。为了直接检查锚点之间的速度场，从 $(0,1]$ 独立采样 $\sigma_i'$，并沿锚点处的速度做一次 Euler 外推：
+动态时间表扩大了锚点的覆盖范围，但每次损失仍只监督一个轨迹锚点。为了直接检查锚点之间的速度场，从 $(0,1]$ 独立采样 $t_i'$，并沿锚点处的速度做一次 Euler 外推：
 
 $$
-x_{\sigma_i'}
-=x_{\sigma_i}
-+(\sigma_i'-\sigma_i)v_\theta(x_{\sigma_i},\sigma_i,c).
+x_{t_i'}
+=x_{t_i}
++(t_i'-t_i)v_\theta(x_{t_i},t_i,c).
 $$
 
-这里的 $\sigma_i'$ 不要求小于 $\sigma_i$。它与积分时间表独立，所以 $x_{\sigma_i'}$ 可以落在相邻锚点之间，也可以超出当前的局部步长。由于真实 ODE 轨迹一般是弯曲的，这个线性外推点通常不在学生刚刚生成的轨迹上。
+这里的 $t_i'$ 不要求小于 $t_i$。它与积分时间表独立，所以 $x_{t_i'}$ 可以落在相邻锚点之间，也可以超出当前的局部步长。由于真实 ODE 轨迹一般是弯曲的，这个线性外推点通常不在学生刚刚生成的轨迹上。
 
 学生在外推点重新给出局部干净样本估计：
 
 $$
 \hat{x}_0^{(i')}
-=D_\theta(x_{\sigma_i'},\sigma_i',c).
+=D_\theta(x_{t_i'},t_i',c).
 $$
 
 再把它加噪到独立采样的 $\hat\tau\sim\mathcal U(0,1]$：
@@ -352,7 +352,7 @@ L_{\mathrm{CDM}}
 \right\|_2^2.
 $$
 
-$L_{\mathrm{DM}}$ 从轨迹锚点处的 $\hat{x}_0^{(i)}$ 回传。$L_{\mathrm{CDM}}$ 的路径还包含由锚点速度构造的 $x_{\sigma_i'}$ 以及外推点上的局部预测 $D_\theta(x_{\sigma_i'},\sigma_i',c)$。这条路径直接约束大步 Euler 积分会遇到的 off-trajectory 区域。
+$L_{\mathrm{DM}}$ 从轨迹锚点处的 $\hat{x}_0^{(i)}$ 回传。$L_{\mathrm{CDM}}$ 的路径还包含由锚点速度构造的 $x_{t_i'}$ 以及外推点上的局部预测 $D_\theta(x_{t_i'},t_i',c)$。这条路径直接约束大步 Euler 积分会遇到的 off-trajectory 区域。
 
 结合以上三点，最终的损失函数为：
 
@@ -401,7 +401,7 @@ flowchart TB
   cdmFork -->|"$$\text{每隔 }R\text{ 次}$$"| cdmSu1["$$\text{冻结 real teacher 与 }D_{\mathrm{fake}}$$"]
   cdmSu1 --> cdmSu2["CA：CFG 条件对齐"]
   cdmSu1 --> cdmSu3["DM：动态锚点上的分布匹配"]
-  cdmSu1 --> cdmSu4["$$\text{锚点 Euler 外推到 }\sigma_i'$$"]
+  cdmSu1 --> cdmSu4["$$\text{锚点 Euler 外推到 }t_i'$$"]
   cdmSu4 --> cdmSu5["CDM：外推位置上的分布匹配"]
   cdmSu2 --> cdmSu6["$$\text{更新 }\theta$$"]
   cdmSu3 --> cdmSu6
