@@ -454,5 +454,5 @@ DMD 与 CDM 不是两条并列路线。后者继承了前者的 real/fake score 
 
 ## 参考
 
-- [DMD2](https://arxiv.org/abs/2405.14867)
-- [Continuous-Time Distribution Matching](https://arxiv.org/abs/2605.06376)
+- [Improved Distribution Matching Distillation for Fast Image Synthesis](https://arxiv.org/abs/2405.14867)
+- [Continuous-Time Distribution Matching for Few-Step Diffusion Distillation](https://arxiv.org/abs/2605.06376)

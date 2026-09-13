@@ -376,4 +376,4 @@ importance ratio 还可能随噪声时间系统性漂移。理想情况下，更
 
 ## 参考
 
-- [Flow-GRPO](https://github.com/yifan123/flow_grpo)：Flow-GRPO、Flow-GRPO-Fast 与 GRPO-Guard。
+- [Flow-GRPO: Training Flow Matching Models via Online RL](https://github.com/yifan123/flow_grpo)
