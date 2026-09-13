@@ -1,5 +1,5 @@
 ---
-title: 'A Glimpse into Recursive Self-Evolution: Skill Self-Evolution'
+title: 'A Glimpse into Recursive Self-Improvement: Skill Self-Evolution'
 date: 2026-09-01 01:02:54
 tags: [Agent, Harness, Skills, 自进化]
 category: 科研
@@ -9,13 +9,13 @@ feature:
 isTop: false
 ---
 
-# A Glimpse into Recursive Self-Evolution: Skill Self-Evolution
+# A Glimpse into Recursive Self-Improvement: Skill Self-Evolution
 
-对于 Agent，人们越来越认识到一个可靠的 Harness 有时能解决很多问题。与此同时，递归自我进化（Recursive Self-Evolution, RSI）在领域内也炙手可热，人们希望 AI 可以像人类一样，可以不断地学习以改进自己，对于 Agent 来说，这种进化有两个层面，一种是模型本身（Agent 的大脑），另一种则是 Harness。相比前者，后者的自进化要相对容易，因此也诞生了一系列关于 Harness 自进化的研究，这其中，Skill 自进化的研究最为广泛，也是本文的焦点。
+对于 Agent，人们越来越认识到一个可靠的 Harness 有时能解决很多问题。与此同时，递归自我改进（Recursive Self-Improvement, RSI）在领域内也炙手可热，人们希望 AI 可以像人类一样，可以不断地学习以改进自己，对于 Agent 来说，这种改进有两个层面，一种是模型本身（Agent 的大脑），另一种则是 Harness。相比前者，后者的自进化要相对容易，因此也诞生了一系列关于 Harness 自进化的研究，这其中，Skill 自进化的研究最为广泛，也是本文的焦点。
 
 Skill 提供了一个自然的载体：把操作流程、工具用法和失败处理写成可复用的文件，按需加载到 Agent 的上下文中。进一步，如果这些文件也能根据执行反馈自动更新，就形成了 **Skill 自进化**。
 
-[SkillOpt](https://arxiv.org/abs/2605.23904)、[WikiSkill](https://arxiv.org/abs/2608.27454) 和 [SkillForge](https://arxiv.org/abs/2604.08618) 分别给出了三种实现思路：把 Skill 当作可训练的文本状态；为更新过程维护持久知识库；从领域任务的失败中定位 Skill 缺陷。下面沿着「执行 → 分析 → 修改 → 再执行」这条链路，看看它们具体怎么做。
+下面以 [SkillOpt](https://arxiv.org/abs/2605.23904)、[WikiSkill](https://arxiv.org/abs/2608.27454) 和 [SkillForge](https://arxiv.org/abs/2604.08618) 三篇 paper 为例子展开对 Skill 自进化的介绍。
 
 ## 1. 自进化发生在模型之外
 
