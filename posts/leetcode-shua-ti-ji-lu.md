@@ -45,6 +45,10 @@ for i in range(len(nums) - 1, -1, -1):
 
 #### [303. 区域和检索 - 数组不可变](https://leetcode.cn/problems/range-sum-query-immutable/description/)
 
+**思路**：构造前缀和数组，`pre_sum[i]` 表示 `nums[0..i-1]` 之和，区间 `[left, right]` 的和由两个前缀和相减得到。
+
+**复杂度**：构造时间 O(n)，查询时间 O(1)；空间 O(n)。
+
 ```Python
 # 303. 区域和检索 - 数组不可变
 class NumArray:
@@ -58,6 +62,10 @@ class NumArray:
 ```
 
 #### [304. 二维区域和检索 - 矩阵不可变](https://leetcode.cn/problems/range-sum-query-2d-immutable/description/)
+
+**思路**：二维前缀和，`presum[i][j]` 表示左上角 `(0, 0)` 到 `(i-1, j-1)` 的子矩阵和，任意子矩阵由四个前缀和用容斥原理拼出。
+
+**复杂度**：构造时间 O(mn)，查询时间 O(1)；空间 O(mn)。
 
 ```Python
 # 304. 二维区域和检索 - 矩阵不可变
@@ -79,6 +87,10 @@ class NumMatrix:
 
 #### [56. 合并区间](https://leetcode.cn/problems/merge-intervals/description)
 
+**思路**：先按左端点升序排序，这样能合并的区间必然连续：当前区间左端点 ≤ 答案末尾区间的右端点就合并（右端点取 max），否则作为新区间追加，左端点无需更新。
+
+**复杂度**：时间 O(n log n)（排序主导），空间 O(n)（结果）或 O(log n)（排序栈）。
+
 ```Python
 # 56. 合并区间
 class Solution:
@@ -95,6 +107,10 @@ class Solution:
 ```
 
 #### [238. 除自身以外数组的乘积](https://leetcode.cn/problems/product-of-array-except-self/description)
+
+**思路**：`ans[i] = 左侧所有数之积 × 右侧所有数之积`，预处理前缀积与后缀积后逐项相乘；进阶可用答案数组本身存前缀积，再逆序遍历乘上后缀积，额外空间降到 O(1)。
+
+**复杂度**：时间 O(n)，空间 O(n)（优化后 O(1)，不计输出）。
 
 ```Python
 # 238. 除自身以外数组的乘积
@@ -118,6 +134,10 @@ class Solution:
 
 #### [73. 矩阵置零](https://leetcode.cn/problems/set-matrix-zeroes/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：先分别标记哪些行、哪些列含 0，再按标记把所有对应位置置零；空间可优化为用矩阵首行/首列充当标记位。
+
+**复杂度**：时间 O(mn)，空间 O(m + n)（可优化到 O(1)）。
+
 ```Python
 # 73. 矩阵置零
 class Solution:
@@ -135,6 +155,10 @@ class Solution:
 ```
 
 #### [48. 旋转图像](https://leetcode.cn/problems/rotate-image/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：顺时针旋转 90° = 先沿主对角线转置，再左右翻转每一行；逆时针旋转 = 先上下翻转，再转置。
+
+**复杂度**：时间 O(n²)，空间 O(1)。
 
 ```Python
 # 48. 旋转图像
@@ -171,6 +195,10 @@ class Solution:
 ```
 
 #### [54. 螺旋矩阵](https://leetcode.cn/problems/spiral-matrix/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：维护上下左右四个边界，按上 → 右 → 下 → 左的顺序逐层“剥洋葱”遍历，每走完一条边就收缩对应边界。
+
+**复杂度**：时间 O(mn)，空间 O(1)（不计答案）。
 
 ```Python
 # 54. 螺旋矩阵
@@ -215,6 +243,10 @@ class Solution:
 
 #### [59. 螺旋矩阵 II](https://leetcode.cn/problems/spiral-matrix-ii/description/)
 
+**思路**：与 54 同理，用四个边界按顺时针逐层填入 1 到 n²。
+
+**复杂度**：时间 O(n²)，空间 O(1)（不计结果矩阵）。
+
 ```Python
 # 59. 螺旋矩阵 II
 class Solution:
@@ -253,6 +285,10 @@ class Solution:
 
 #### [28. 找出字符串中第一个匹配项的下标](https://leetcode.cn/problems/find-the-index-of-the-first-occurrence-in-a-string/)
 
+**思路**：暴力法枚举每个起点并截取与 needle 等长的子串比较；KMP 则先求 needle 的 next（最长相等前后缀）数组，主串指针不回退，失配时只回退模式串指针。
+
+**复杂度**：暴力 O(nm)；KMP 时间 O(n + m)，空间 O(m)。
+
 ```Python
 # 28. 找出字符串中第一个匹配项的下标
 class Solution:
@@ -265,6 +301,10 @@ class Solution:
 ```
 
 #### [165. 比较版本号](https://leetcode.cn/problems/compare-version-numbers/description/)
+
+**思路**：按 `.` 切分后逐段比较，用 `zip_longest` 以 0 补齐较短的版本号，前导零由 `int` 转换天然忽略。
+
+**复杂度**：时间 O(m + n)，空间 O(m + n)。
 
 ```Python
 # 165. 比较版本号
@@ -289,6 +329,10 @@ class Solution:
 
 #### [1. 两数之和](https://leetcode.cn/problems/two-sum/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：哈希表记录已访问元素与下标，枚举右端点时查 `target - x` 是否出现过，一次遍历同时完成“查左”和“存右”。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 1. 两数之和
 # 哈希--梦开始的地方
@@ -303,6 +347,10 @@ class Solution:
 ```
 
 #### [242. 有效的字母异位词](https://leetcode.cn/problems/valid-anagram/description/)
+
+**思路**：统计两个字符串各字符的出现次数后比较；也可只用一个计数数组，s 加、t 减，最终全为 0 即为异位词。
+
+**复杂度**：时间 O(n)，空间 O(|Σ|)（字符集大小，视为 O(1)）。
 
 ```Python
 # 242. 有效的字母异位词
@@ -336,6 +384,10 @@ class Solution:
 
 #### [202. 快乐数](https://leetcode.cn/problems/happy-number/description/)
 
+**思路**：反复计算各位数字的平方和，用集合记录出现过的数；一旦重复出现说明进入环，必定不是快乐数。
+
+**复杂度**：时间 O(log n)，空间 O(log n)。
+
 ```Python
 # 202. 快乐数
 class Solution:
@@ -355,6 +407,10 @@ class Solution:
 ```
 
 #### [454. 四数相加 II](https://leetcode.cn/problems/4sum-ii/description/)
+
+**思路**：分组哈希，先统计 nums1 + nums2 所有两数之和的次数，再枚举 nums3 + nums4 累加 `-(c + d)` 的次数，把四重循环降为两轮二重循环。
+
+**复杂度**：时间 O(n²)，空间 O(n²)。
 
 ```Python
 # 454. 四数相加 II
@@ -387,6 +443,10 @@ class Solution:
 
 #### [383. 赎金信](https://leetcode.cn/problems/ransom-note/description/)
 
+**思路**：统计 magazine 中各字符的数量，再逐个扣减 ransomNote 的字符，数量不足即返回 False。
+
+**复杂度**：时间 O(m + n)，空间 O(|Σ|)。
+
 ```Python
 # 383. 赎金信
 class Solution:
@@ -404,6 +464,10 @@ class Solution:
 
 #### [49. 字母异位词分组](https://leetcode.cn/problems/group-anagrams/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：同组异位词排序后相同，于是把排序后的字符串作为哈希表的 key 分桶；也可用 26 位计数元组当 key。
+
+**复杂度**：时间 O(n · L log L)，空间 O(n · L)。
+
 ```Python
 # 49. 字母异位词分组
 class Solution:
@@ -417,6 +481,10 @@ class Solution:
 ```
 
 #### [128. 最长连续序列](https://leetcode.cn/problems/longest-consecutive-sequence/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：先把数组转成哈希集合，再只从没有前驱（`num - 1` 不在集合中）的数开始向后枚举连续段，保证每个数最多被访问两次。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 128. 最长连续序列
@@ -442,6 +510,10 @@ class Solution:
 ```
 
 #### [560. 和为 K 的子数组](https://leetcode.cn/problems/subarray-sum-equals-k/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：子数组和 = 两个前缀和之差，枚举右端点时用哈希表统计“前缀和等于当前前缀和 − k”出现过的次数并累加；`cnt[0] = 1` 对应空前缀。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 560. 和为 K 的子数组
@@ -475,6 +547,10 @@ class Solution:
 
 #### [523. 连续的子数组和](https://leetcode.cn/problems/continuous-subarray-sum/description/)
 
+**思路**：子数组和能被 k 整除 ⇔ 两个前缀和模 k 相等，用哈希表记录每个余数最早出现的下标，若当前下标与之相差 ≥ 2 即找到长度至少为 2 的子数组。
+
+**复杂度**：时间 O(n)，空间 O(min(n, k))。
+
 ```Python
 # 523. 连续的子数组和
 class Solution:
@@ -496,6 +572,10 @@ class Solution:
 ```
 
 #### [287. 寻找重复数](https://leetcode.cn/problems/find-the-duplicate-number/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：原地哈希，把数值 x 对应下标 `|x| - 1` 的元素取负作标记；若访问时已是负数，说明该值已出现过，即重复数。也可用快慢指针（环形链表 II）做到 O(1) 空间。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 287. 寻找重复数
@@ -523,6 +603,10 @@ class Solution:
 
 #### [26. 删除有序数组中的重复项](https://leetcode.cn/problems/remove-duplicates-from-sorted-array/description/)
 
+**思路**：快慢指针，slow 指向已去重区间的下一个写入位置，fast 扫描原数组，遇到与前一元素不同的值就写入 slow。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 26. 删除有序数组中的重复项
 class Solution:
@@ -543,6 +627,10 @@ class Solution:
 
 #### [27. 移除元素](https://leetcode.cn/problems/remove-element/description/)
 
+**思路**：快慢指针，`[0, slow)` 内是已确认不等于 val 的元素，fast 扫一遍把不等于 val 的值依次覆盖到 slow。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 27. 移除元素
 class Solution:
@@ -559,6 +647,10 @@ class Solution:
 ```
 
 #### [283. 移动零](https://leetcode.cn/problems/move-zeroes/description)
+
+**思路**：先用 27 的做法把非零元素依次前移，再把 slow 之后的位置补 0，等价于原地稳定移动零。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 283. 移动零
@@ -579,6 +671,10 @@ class Solution:
 ```
 
 #### [88. 合并两个有序数组](https://leetcode.cn/problems/merge-sorted-array/description)
+
+**思路**：倒序双指针，从两个数组末尾取较大者放到 nums1 尾部，避免覆盖 nums1 中尚未比较的元素，与合并有序链表思路相仿。
+
+**复杂度**：时间 O(m + n)，空间 O(1)。
 
 ```Python
 # 88. 合并两个有序数组
@@ -601,6 +697,10 @@ class Solution:
 
 #### [344. 反转字符串](https://leetcode.cn/problems/reverse-string/description/)
 
+**思路**：左右指针相向而行，交换两端字符直到相遇。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 344. 反转字符串
 class Solution:
@@ -617,6 +717,10 @@ class Solution:
 ```
 
 #### [541. 反转字符串 II](https://leetcode.cn/problems/reverse-string-ii/description/)
+
+**思路**：以 2k 为步长分段，每段反转前 k 个字符，边界用 `min(i + k - 1, n - 1)` 处理不足 k 个或不足 2k 个的情况。
+
+**复杂度**：时间 O(n)，空间 O(n)（转为列表）。
 
 ```Python
 # 541. 反转字符串 II
@@ -637,6 +741,10 @@ class Solution:
 ```
 
 #### [151. 反转字符串中的单词](https://leetcode.cn/problems/reverse-words-in-a-string/description/)
+
+**思路**：先 `split()` 去掉多余空格并切出单词，整体反转单词顺序后拼接；也可先反转整个字符串，再反转每个单词。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 151. 反转字符串中的单词
@@ -674,6 +782,10 @@ class Solution:
 
 #### [125. 验证回文串](https://leetcode.cn/problems/valid-palindrome/description/)
 
+**思路**：先用 `isalnum()` 过滤出字母数字并统一转小写，再用左右指针判断回文。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 125. 验证回文串
 class Solution:
@@ -691,6 +803,10 @@ class Solution:
 ```
 
 #### [415. 字符串相加](https://leetcode.cn/problems/add-strings/description/)
+
+**思路**：模拟竖式加法，双指针从两字符串末尾向前逐位相加并维护进位，结果逆序拼接；循环条件带上 carry 以处理最高位进位。
+
+**复杂度**：时间 O(max(m, n))，空间 O(max(m, n))。
 
 ```Python
 # 415. 字符串相加
@@ -715,6 +831,10 @@ class Solution:
 ```
 
 #### [165. 比较版本号](https://leetcode.cn/problems/compare-version-numbers/description/)
+
+**思路**：双指针各自按 `.` 分段解析出整数（遇 `.` 或越界即停），逐段比较；某一段缺失时按 0 处理。
+
+**复杂度**：时间 O(m + n)，空间 O(1)。
 
 ```Python
 # 165. 比较版本号
@@ -750,6 +870,10 @@ class Solution:
 
 #### [80. 删除有序数组中的重复项 II](https://leetcode.cn/problems/remove-duplicates-from-sorted-array-ii/description/)
 
+**思路**：快慢指针维护“结果区间内每个数最多出现两次”的不变式，只需判断写入位置前两个元素是否等于当前元素：`nums[slow - 2] != nums[fast]` 时才写入。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 80. 删除有序数组中的重复项 II
 class Solution:
@@ -774,6 +898,10 @@ class Solution:
 
 #### [11. 盛最多水的容器](https://leetcode.cn/problems/container-with-most-water/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：左右指针从两端向内收缩，每轮计算当前面积并移动较短的那块挡板——移动较长挡板只会让宽度变小且高度不会变大，不可能得到更优解。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 11. 盛最多水的容器
 Class Solution:
@@ -792,6 +920,10 @@ Class Solution:
 
 #### [167. 两数之和 II - 输入有序数组](https://leetcode.cn/problems/two-sum-ii-input-array-is-sorted/description/)
 
+**思路**：有序数组天然支持相向双指针，两数之和偏小就右移左指针，偏大就左移右指针。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 167. 两数之和 II - 输入有序数组
 class Solution:
@@ -807,6 +939,10 @@ class Solution:
 ```
 
 #### [15. 三数之和](https://leetcode.cn/problems/3sum/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：排序后固定第一个数，其余两数用相向双指针（167.）求解；跳过重复的第一个数与重复的 j、k 避免重复答案，并用两处剪枝提前 break / continue。
+
+**复杂度**：时间 O(n²)，空间 O(log n)（排序）或 O(n)。
 
 ```Python
 # 15. 三数之和
@@ -843,6 +979,10 @@ class Solution:
 ```
 
 #### [42. 接雨水 [Hard]](https://leetcode.cn/problems/trapping-rain-water/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：接水高度由较矮的一侧决定，`water[i] = min(左边最高, 右边最高) - height[i]`；前缀后缀数组直接实现该式，双指针版本进一步发现——若左侧最大值小于右侧最大值，则当前位置的答案只由左侧最大值决定，于是可以边收缩边累加，省掉两个数组。
+
+**复杂度**：前缀后缀数组法时间 O(n)、空间 O(n)；双指针法时间 O(n)、空间 O(1)。
 
 ```Python
 # 42. 接雨水
@@ -896,6 +1036,10 @@ class Solution:
 ```
 
 #### [5. 最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：中心扩展法，枚举每个回文中心（奇回文中心为 i，偶回文中心为 i 与 i + 1）向两边扩展，记录最长区间。
+
+**复杂度**：时间 O(n²)，空间 O(1)。
 
 ```Python
 # 5. 最长回文子串
@@ -972,6 +1116,10 @@ def slidingWindow(s: str):
 
 #### [209. 长度最小的子数组](https://leetcode.cn/problems/minimum-size-subarray-sum/description/)
 
+**思路**：滑动窗口，右指针不断加入元素（累加窗口和），当窗口和 ≥ target 时收缩左指针并更新最短长度，每个元素最多进出窗口一次。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 209. 长度最小的子数组
 class Solution:
@@ -990,6 +1138,10 @@ class Solution:
 ```
 
 #### [3. 无重复字符的最长子串](https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：维护窗口内无重复字符（哈希计数或哈希集合），右指针加入字符后若出现重复就移动左指针直至无重复，每轮更新最长长度。
+
+**复杂度**：时间 O(n)，空间 O(|Σ|)（可视为 O(1)）。
 
 ```Python
 # 3. 无重复字符的最长子串
@@ -1028,6 +1180,10 @@ class Solution:
 
 #### [438. 找到字符串中所有字母异位词](https://leetcode.cn/problems/find-all-anagrams-in-a-string/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：窗口长度固定为 len(p)，直接比较窗口内的字符计数表与 p 的计数表；不定长滑窗写法把 p 的计数逐位扣减，出现负值说明该字符超出所需，收缩左指针，窗口长度恰为 len(p) 时即为一个异位词起点。
+
+**复杂度**：时间 O(n)，空间 O(|Σ|)。
+
 ```Python
 # 438. 找到字符串中所有字母异位词
 # 方法一
@@ -1065,6 +1221,10 @@ class Solution:
 
 #### [76. 最小覆盖子串 [Hard]](https://leetcode.cn/problems/minimum-window-substring/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：滑动窗口不断右扩，当窗口计数表覆盖 t 的计数表（逐字符 `cnt_s >= cnt_t`）时收缩左端点寻找更短答案，并同步记录最优区间。
+
+**复杂度**：时间 O(|Σ| · m + n)，空间 O(|Σ|)。
+
 ```Python
 # 76. 最小覆盖子串
 class Solution:
@@ -1091,6 +1251,10 @@ class Solution:
 例子：
 
 #### [35. 搜索插入位置 & 34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/search-insert-position/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：二分查找第一个 ≥ target 的位置（lower_bound），该位置既是插入位置也是目标值首次出现的位置；求区间则再用 `lower_bound(target + 1) - 1` 得到最后一个位置。闭区间与开区间两种写法只是循环不变式不同。
+
+**复杂度**：时间 O(log n)，空间 O(1)。
 
 ```Python
 # 35. 搜索插入位置
@@ -1136,6 +1300,10 @@ class Solution:
 
 #### [69. x 的平方根](https://leetcode.cn/problems/sqrtx/description/?envType=study-plan-v2&envId=top-interview-150)
 
+**思路**：在 `[0, x]` 上二分查找最大的满足 `mid² ≤ x` 的数，即 x 的算术平方根下取整。
+
+**复杂度**：时间 O(log x)，空间 O(1)。
+
 ```Python
 # 69. x 的平方根
 class Solution:
@@ -1153,6 +1321,10 @@ class Solution:
 ```
 
 #### [74. 搜索二维矩阵](https://leetcode.cn/problems/search-a-2d-matrix/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：把 m × n 矩阵视为长度为 m·n 的有序一维数组，用 `matrix[mid // n][mid % n]` 完成一维下标到二维坐标的映射后二分。
+
+**复杂度**：时间 O(log(mn))，空间 O(1)。
 
 ```Python
 # 74. 搜索二维矩阵
@@ -1198,6 +1370,10 @@ class Solution:
 
 #### [240. 搜索二维矩阵 II](https://leetcode.cn/problems/search-a-2d-matrix-ii/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：逐行二分查找，每行用 lower_bound 判断是否存在；更优的是从右上角出发的排除法——当前值小于目标就下移一行（该行左侧全更小），大于目标就左移一列（该列下方全更大），每步排除一整行或一整列。
+
+**复杂度**：逐行二分 O(m log n)；排除法时间 O(m + n)，空间 O(1)。
+
 ```Python
 # 240. 搜索二维矩阵 II
 # 方法一 逐行二分查找
@@ -1238,6 +1414,10 @@ class Solution:
 
 #### [852. 山脉数组的峰顶索引](https://leetcode.cn/problems/peak-index-in-a-mountain-array/description/)
 
+**思路**：山峰数组在峰值左侧满足 `arr[i] < arr[i+1]`、右侧不满足，据此二分查找两段的分界点，右指针即峰值下标。
+
+**复杂度**：时间 O(log n)，空间 O(1)。
+
 ```Python
 # 852. 山脉数组的峰顶索引
 class Solution:
@@ -1254,6 +1434,10 @@ class Solution:
 ```
 
 #### [153. 寻找旋转排序数组中的最小值](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：旋转后数组分成两段升序，且左段元素整体大于右段；以最后一个元素为参照判断 mid 落在左段（大于 `nums[-1]`）还是右段，二分收敛到右段最左端即最小值。
+
+**复杂度**：时间 O(log n)，空间 O(1)。
 
 ```Python
 # 153. 寻找旋转排序数组中的最小值
@@ -1272,6 +1456,10 @@ class Solution:
 ```
 
 #### [33. 搜索旋转排序数组](https://leetcode.cn/problems/search-in-rotated-sorted-array/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：一次二分——借助 `nums[-1]` 判断 target 与 nums[mid] 是否在同一段，不在同一段时把指针往 target 所在段收缩，在同一段时退化为普通二分；也可先二分找最小值位置（153.），再在两段中分别二分查找。
+
+**复杂度**：时间 O(log n)，空间 O(1)。
 
 ```Python
 # 33. 搜索旋转排序数组
@@ -1335,6 +1523,10 @@ class Solution:
 
 #### [160. 相交链表](https://leetcode.cn/problems/intersection-of-two-linked-lists/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：两指针分别从两条链表头出发，走到末尾就换到另一条链表头继续走；若相交，两者走过的总步数相同因而必然在交点相遇，若不相交则同时到达 None。
+
+**复杂度**：时间 O(m + n)，空间 O(1)。
+
 ```Python
 class Solution:
     def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> Optional[ListNode]:
@@ -1348,6 +1540,10 @@ class Solution:
 ```
 
 #### [24. 两两交换链表中的节点](https://leetcode.cn/problems/swap-nodes-in-pairs/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：加哨兵节点，每轮取出相邻两个节点，借助临时变量调整三个指针完成交换，再把 cur 前移两位。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 24. 两两交换链表中的节点
@@ -1369,6 +1565,10 @@ class Solution:
 ```
 
 #### [21. 合并两个有序链表](https://leetcode.cn/problems/merge-two-sorted-lists/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：哨兵节点 + 尾指针，每轮比较两链表头节点，把较小者接到结果尾部；最后把未走完的链表整段接上。
+
+**复杂度**：时间 O(m + n)，空间 O(1)。
 
 ```Python
 # 21. 合并两个有序链表
@@ -1392,6 +1592,10 @@ class Solution:
 ```
 
 #### [86. 分隔链表](https://leetcode.cn/problems/partition-list/description/)
+
+**思路**：维护小于 x 与不小于 x 两条链表，遍历原链表按值分流（需要断开原指针，否则可能成环），最后把两条链拼接。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 86. 分隔链表
@@ -1421,6 +1625,10 @@ class Solution:
 
 #### [83. 删除排序链表中的重复元素](https://leetcode.cn/problems/remove-duplicates-from-sorted-list/description/)
 
+**思路**：一次遍历（链表已有序），若 `cur.next` 与 cur 值相同就删除 `cur.next`，否则 cur 前进一步。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 class Solution:
     def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
@@ -1435,6 +1643,10 @@ class Solution:
 ```
 
 #### [82. 删除排序链表中的重复元素 II](https://leetcode.cn/problems/remove-duplicates-from-sorted-list-ii/description/)
+
+**思路**：哨兵节点 + 判断后两个节点是否同值；若同值说明该值应全部删除，用内层循环把该值的节点一次删完，否则 cur 前进。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 82. 删除排序链表中的重复元素 II
@@ -1453,6 +1665,10 @@ class Solution:
 ```
 
 #### [2. 两数相加](https://leetcode.cn/problems/add-two-numbers/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：模拟竖式加法，两条链表逐位相加并维护进位，用哨兵节点串起结果；循环条件加上 carry 以处理最高位进位。
+
+**复杂度**：时间 O(max(m, n))，空间 O(max(m, n))（结果链表）。
 
 ```Python
 # 2. 两数相加
@@ -1476,6 +1692,10 @@ class Solution:
 
 #### [206. 反转链表](https://leetcode.cn/problems/reverse-linked-list/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：三指针迭代，逐个把 `cur.next` 指向 pre，同时用 nxt 暂存后继防止断链。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 206. 反转链表
 class Solution:
@@ -1492,6 +1712,10 @@ class Solution:
 ```
 
 #### [92. 反转链表 II](https://leetcode.cn/problems/reverse-linked-list-ii/description/)
+
+**思路**：先走到第 left − 1 个节点 p0，再从 `p0.next` 开始按 206 的方式反转 right − left + 1 个节点，最后把反转段的头尾与原链表重新衔接。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 92. 反转链表 II
@@ -1516,6 +1740,10 @@ class Solution:
 
 #### [234. 回文链表](https://leetcode.cn/problems/palindrome-linked-list?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：最直接的是把链表值存入数组后比较；进阶做法是快慢指针找中点、反转后半段链表，再与原链表逐个比较。
+
+**复杂度**：数组法时间 O(n)、空间 O(n)；快慢指针 + 反转链表时间 O(n)、空间 O(1)。
+
 ```Python
 # 234. 回文链表
 class Solution:
@@ -1529,6 +1757,10 @@ class Solution:
 ```
 
 #### [25. K 个一组翻转链表 [Hard]](https://leetcode.cn/problems/reverse-nodes-in-k-group/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：先求链表长度以确定能完整分出几组 k 个节点，随后每组用哨兵节点 p0 做一次局部反转，并把当前组的新尾接到下一组开头，p0 移动到该组反转后的尾部。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 25. K 个一组翻转链表
@@ -1566,6 +1798,10 @@ class Solution:
 
 #### [23. 合并 K 个升序链表 [Hard]](https://leetcode.cn/problems/merge-k-sorted-lists/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：用最小堆维护每条链表的当前头节点，每次弹出最小节点接到结果尾部，并把它的后继入堆。
+
+**复杂度**：时间 O(N log k)（N 为总节点数），空间 O(k)。
+
 ```Python
 # 23. 合并 K 个升序链表
 ListNode.__lt__ = lambda a, b: a.val < b.val
@@ -1585,6 +1821,10 @@ class Solution:
 ```
 
 #### [146. LRU 缓存](https://leetcode.cn/problems/lru-cache/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：哈希表 + 双向循环链表（带哨兵节点）：哈希表 O(1) 定位节点，链表维护访问顺序，get/put 命中时把节点移到链表头部，超容量时删除链表尾部（最久未使用）的节点。
+
+**复杂度**：get 与 put 时间均为 O(1)，空间 O(capacity)。
 
 ```Python
 # 146. LRU 缓存
@@ -1643,6 +1883,10 @@ class LRUCache:
 
 #### [141. 环形链表](https://leetcode.cn/problems/linked-list-cycle/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：快慢指针，快指针每次走两步、慢指针走一步；有环时快指针必然追上慢指针，能走到 None 则无环。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 141. 环形链表
 class Solution:
@@ -1659,6 +1903,10 @@ class Solution:
 ```
 
 #### [142. 环形链表 II](https://leetcode.cn/problems/linked-list-cycle-ii/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：快慢指针相遇后，让一个指针回到头节点，两指针同步每次走一步，再次相遇处即环的入口（由“相遇点到入口的距离 = 头节点到入口的距离”可证）。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 142. 环形链表 II
@@ -1680,6 +1928,10 @@ class Solution:
 ```
 
 #### [876. 链表的中间节点 &amp; 143. 重排链表](https://leetcode.cn/problems/reorder-list/description/)
+
+**思路**：快慢指针找中点（876.），反转后半段链表（206.），再把前半段与反转后的后半段交替拼接（143.）。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 class Solution:
@@ -1715,6 +1967,10 @@ class Solution:
 ```
 
 #### [148. 排序链表](https://leetcode.cn/problems/sort-list/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：自顶向下归并排序——快慢指针找中点并用 pre 断开链表，递归排序两段后用合并两个有序链表的方式归并。
+
+**复杂度**：时间 O(n log n)，空间 O(log n)（递归栈）。
 
 ```Python
 # 148. 排序链表
@@ -1754,6 +2010,10 @@ class Solution:
 
 #### [19. 删除链表的倒数第 N 个节点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：前后指针，快指针先走 n + 1 步（含哨兵节点），之后快慢同步前进；快指针到达 None 时慢指针正好指向待删节点的前驱。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 19. 删除链表的倒数第 N 个节点
 # 双指针--前后指针
@@ -1774,6 +2034,10 @@ class Solution:
 ```
 
 #### [61. 旋转链表](https://leetcode.cn/problems/rotate-list/description/)
+
+**思路**：先求链表长度并令 `k %= n`，再用快慢指针让快指针领先 k 步，同步走到末尾后把链表接成环，然后在正确位置断环，倒数第 k 个节点成为新头节点。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 61. 旋转链表
@@ -1809,6 +2073,10 @@ class Solution:
 
 #### [20. 有效的括号](https://leetcode.cn/problems/valid-parentheses/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：左括号入栈，右括号与栈顶配对；栈空或配对失败即非法，遍历结束后栈必须为空。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 class Solution:
     def isValid(self, s: str) -> bool:
@@ -1832,6 +2100,10 @@ class Solution:
 ```
 
 #### [394. 字符串解码](https://leetcode.cn/problems/decode-string/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：遍历字符串，数字累积到 k，遇 `[` 把当前串与 k 入栈并重置状态，遇 `]` 弹栈拼接 `prev + cur * k`，普通字符直接追加到 cur。
+
+**复杂度**：时间 O(n)（与输出长度同阶），空间 O(n)。
 
 ```Python
 class Solution:
@@ -1857,6 +2129,10 @@ class Solution:
 ```
 
 #### [150. 逆波兰表达式求值](https://leetcode.cn/problems/evaluate-reverse-polish-notation/description/?envType=study-plan-v2&envId=top-interview-150)
+
+**思路**：遇数字入栈，遇运算符就弹出栈顶两个数做运算并把结果压回（注意减法和除法的操作数顺序）。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 150. 逆波兰表达式求值
@@ -1885,6 +2161,10 @@ class Solution:
 
 #### [3561. 移除相邻字符](https://leetcode.cn/problems/resulting-string-after-adjacent-removals/)
 
+**思路**：栈 + 消除，若当前字符与栈顶互为相邻字符（字母表相邻或 a/z 这种跨首尾相邻）则弹出栈顶，否则入栈，最后栈内字符即结果。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 def is_consecutive(x, y):
     d = abs(ord(x) - ord(y))
@@ -1903,6 +2183,10 @@ class Solution:
 ```
 
 #### [739. 每日温度](https://leetcode.cn/problems/daily-temperatures/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：单调栈存下标（从栈底到栈顶温度递减），从左往右扫，当前温度高于栈顶温度时不断弹出并结算天数差；也可从右往左扫维护“最近更高温”的单调栈。
+
+**复杂度**：时间 O(n)，空间 O(min(n, U))。
 
 ```Python
 # 739. 每日温度
@@ -1924,6 +2208,10 @@ class Solution:
 
 #### [42. 接雨水 [Hard]](https://leetcode.cn/problems/trapping-rain-water/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：单调栈，维护高度递减的下标栈；遇到更高的柱子时不断弹栈，弹出的下标作为“底部”，其左右两侧更矮/更高的柱子围出一块可接水区域，按 `(min(左高, 右高) - 底高) × 宽度` 累加。
+
+**复杂度**：时间 O(n)（每个下标最多入栈出栈一次），空间 O(n)。
+
 ```Python
 # 42. 接雨水
 # 方法三 单调栈
@@ -1944,6 +2232,10 @@ class Solution:
 ```
 
 #### [32. 最长有效括号 [Hard]](https://leetcode.cn/problems/longest-valid-parentheses/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：栈 + 基准下标——初始压入 −1 作为“未被匹配的最后一个位置”，遇 `(` 入栈，遇 `)` 弹栈；弹完栈空说明当前右括号多余，把当前下标压栈作为新基准，否则以“当前下标 − 栈顶”更新最长有效长度。也可用 DP：`dp[i]` 表示以 i 结尾的最长有效长度。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 32. 最长有效括号
@@ -1984,6 +2276,10 @@ class Solution:
 
 #### [239. 滑动窗口最大值 [Hard]](https://leetcode.cn/problems/sliding-window-maximum/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：单调队列存下标、队内值递减，右端入队前弹出所有不大于当前值的元素，保证队首是窗口最大值；队首下标滑出窗口时出队，窗口长度达到 k 后队首即答案。
+
+**复杂度**：时间 O(n)（每个元素最多入队出队一次），空间 O(k)。
+
 ```Python
 # 239. 滑动窗口最大值
 # 暴力法：O(n^2) -- 通过不了
@@ -2019,6 +2315,10 @@ class Solution:
 ### 递归
 
 #### [104. 二叉树的最大深度](https://leetcode.cn/problems/maximum-depth-of-binary-tree/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：分解子问题——最大深度 = max(左子树深度, 右子树深度) + 1；也可用遍历 + 回溯，进入节点时深度加一、离开时减一，在叶子处更新答案。
+
+**复杂度**：时间 O(n)，空间 O(n)（递归栈，最坏为链状）。
 
 ```Python
 # 104. 二叉树的最大深度
@@ -2057,6 +2357,10 @@ class Solution:
 
 #### [94. 二叉树的中序遍历](https://leetcode.cn/problems/binary-tree-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：递归中序遍历，按“左 - 根 - 右”访问，把访问语句移到最前或最后即变成前序遍历或后序遍历。
+
+**复杂度**：时间 O(n)，空间 O(n)（递归栈）。
+
 ```Python
 # 94. 二叉树的中序遍历
 # 方法一 递归
@@ -2075,6 +2379,10 @@ class Solution:
 ```
 
 #### [226. 翻转二叉树](https://leetcode.cn/problems/invert-binary-tree/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：分解子问题，先递归翻转左右子树再交换两棵子树；也可用遍历（前/后序）在进入节点时交换左右孩子。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 226. 翻转二叉树
@@ -2115,6 +2423,10 @@ class Soution:
 
 #### [110. 平衡二叉树](https://leetcode.cn/problems/balanced-binary-tree/)
 
+**思路**：后序遍历求子树高度，若某节点左右子树高度差超过 1 就返回 −1 作为“毒值”向上短路传播，避免重复计算高度。
+
+**复杂度**：时间 O(n)（自底向上，每个节点只算一次），空间 O(n)。
+
 ```Python
 # 110. 平衡二叉树
 class Solution:
@@ -2134,6 +2446,10 @@ class Solution:
 
 #### [100. 相同的树 &amp; 101. 对称二叉树](https://leetcode.cn/problems/symmetric-tree/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：一套递归比较两棵树——值相等且对应子树递归相等；判断对称二叉树只需把“左对左、右对右”改成“左对右、右对左”。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 100. 相同的树 
 # 101. 对称二叉树
@@ -2148,6 +2464,10 @@ class Solution:
 ```
 
 #### [199. 二叉树的右视图](https://leetcode.cn/problems/binary-tree-right-side-view/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：先递归右子树再递归左子树，每个深度第一次访问到的节点就是右视图看到的节点（`depth == len(ans)` 时记录）。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```python
 # 199. 二叉树的右视图
@@ -2168,6 +2488,10 @@ class Solution:
 
 #### [105. 从前序与中序遍历序列构造二叉树](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：前序的第一个元素即根，用该值在中序中的位置划分左右子树的中序区间并得到左子树大小（后序则是最后一个元素为根），据此切分前序区间递归建树；用哈希表预存中序下标可免去每层线性查找。
+
+**复杂度**：时间 O(n²)（朴素查找）或 O(n)（哈希预处理），空间 O(n)。
+
 ```Python
 # 105. 从前序与中序遍历序列构造二叉树 
 class Solution:
@@ -2182,6 +2506,10 @@ class Solution:
 ```
 
 #### [543. 二叉树的直径](https://leetcode.cn/problems/diameter-of-binary-tree/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：后序遍历求每个节点的左右子树深度，用“左深度 + 右深度”更新答案（路径以该节点为最高点），返回给上层的仍是 `max(左, 右) + 1`。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 543. 二叉树的直径
@@ -2205,6 +2533,10 @@ class Solution:
 
 #### [236. 二叉树的最近公共祖先](https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：后序遍历——命中 p 或 q（或为空）就直接返回；若左右子树各返回一个目标节点，说明当前节点即最近公共祖先，若只找到一边则向上返回该节点。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 236. 二叉树的最近公共祖先
 class Solution:
@@ -2219,6 +2551,10 @@ class Solution:
 ```
 
 #### [437. 路径总和 III](https://leetcode.cn/problems/path-sum-iii/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：与 560 同源——DFS 时维护“根到当前节点路径上的前缀和”及哈希计数，累加 `s - targetSum` 的计数即路径数；回溯时撤销计数（恢复现场）。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 437. 路径总和 III
@@ -2248,6 +2584,10 @@ class Solution:
 
 #### [124. 二叉树中的最大路径和](https://leetcode.cn/problems/binary-tree-maximum-path-sum/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：后序遍历，每个节点处用 `左收益 + 右收益 + 当前值` 更新答案（路径在此“拐弯”），向上返回 `max(左, 右) + 当前值`，为负则返回 0 表示不选该分支。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 124. 二叉树中的最大路径和
 class Solution:
@@ -2268,6 +2608,10 @@ class Solution:
 ### 迭代
 
 #### [94. 二叉树的中序遍历](https://leetcode.cn/problems/binary-tree-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：迭代用显式栈模拟递归——指针一路向左入栈，无路可走时弹栈访问该节点，再转向其右子树。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 94. 二叉树的中序遍历
@@ -2296,6 +2640,10 @@ class Solution:
 ```
 
 #### [102. 二叉树的层序遍历](https://leetcode.cn/problems/binary-tree-level-order-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：BFS 按层处理——用双数组记录下一层节点，或按当前队列长度分层，逐层收集节点值。
+
+**复杂度**：时间 O(n)，空间 O(n)（最宽层节点数）。
 
 ```Python
 # 102. 二叉树的层序遍历
@@ -2343,6 +2691,10 @@ class Solution:
 
 #### [103. 二叉树的锯齿形层序遍历](https://leetcode.cn/problems/binary-tree-zigzag-level-order-traversal/description/)
 
+**思路**：与普通层序遍历相同，区别在于加入答案时按层号决定是否把该层结果反转。
+
+**复杂度**：时间 O(n)，空间 O(n)。
+
 ```Python
 # 103. 二叉树的锯齿形层序遍历
 # 与普通的层序遍历思路一样，区别在于添加答案时要注意 vals 的顺序
@@ -2370,6 +2722,10 @@ class Solution:
 
 #### [108. 将有序数组转换为二叉搜索树](https://leetcode.cn/problems/convert-sorted-array-to-binary-search-tree/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：有序数组即中序遍历序列，每次取区间中点作为当前子树的根，递归构造左右子树，自然保证高度平衡。
+
+**复杂度**：时间 O(n)，空间 O(log n)（递归栈）。
+
 ```Python
 # 108. 将有序数组转换为二叉搜索树
 class Solution:
@@ -2383,6 +2739,10 @@ class Solution:
 ```
 
 #### [98. 验证二叉搜索树](https://leetcode.cn/problems/validate-binary-search-tree/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：三种写法等价——中序遍历判断序列是否严格递增（记录前驱值）；前序遍历为每个节点传递开区间上下界 `(left, right)`；后序遍历返回子树的最小/最大值用于校验。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```python
 # 98. 验证二叉搜索树
@@ -2427,6 +2787,10 @@ class Solution:
 
 #### [230. 二叉搜索树中第 K 小的元素](https://leetcode.cn/problems/kth-smallest-element-in-a-bst/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：中序遍历二叉搜索树得到升序序列，取第 k 个元素；若想提前结束或省空间，可在中序遍历中计数，数到第 k 个立即返回（或按子树大小做二分下降）。
+
+**复杂度**：时间 O(n)（朴素）或 O(h + k)，空间 O(n)（数组）或 O(h)。
+
 ```Python
 # 230. 二叉搜索树中第 K 小的元素
 # 方法一 中序遍历
@@ -2451,6 +2815,10 @@ class Solution:
 
 #### [215. 数组中的第 K 个最大元素](https://leetcode.cn/problems/kth-largest-element-in-an-array/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：维护大小为 k 的最小堆，遍历数组逐个入堆，堆大小超过 k 就弹出堆顶，最终堆顶即第 k 大元素。
+
+**复杂度**：时间 O(n log k)，空间 O(k)。
+
 ```Python
 # 215. 数组中的第 K 个最大元素
 # 方法一 堆 Python 标准库实现
@@ -2468,6 +2836,10 @@ class Solution:
 ```
 
 #### [347. 前 K 个高频元素](https://leetcode.cn/problems/top-k-frequent-elements/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：先用哈希表统计每个数出现的频率，再用大小为 k 的最小堆按频率筛选出前 k 高频元素。
+
+**复杂度**：时间 O(n log k)，空间 O(n)。
 
 ```Python
 # 347. 前 K 个高频元素
@@ -2490,6 +2862,10 @@ class Solution:
 ## 排序
 
 #### 手撕快速排序
+
+**思路**：随机选取基准并交换到区间左端，双指针从两端向中间收缩，把小于基准的元素换到左边、大于基准的换到右边，最后把基准归位到 j，再递归排序左右两段。
+
+**复杂度**：时间平均 O(n log n)、最坏 O(n²)（随机基准降低最坏概率），空间 O(log n)（递归栈）。
 
 ```Python
 import random
@@ -2536,6 +2912,10 @@ class Solution:
 ```
 
 #### [215. 数组中的第 K 个最大元素](https://leetcode.cn/problems/kth-largest-element-in-an-array/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：快速选择——复用快排的 partition，它返回基准在排序后数组中的最终下标 j；只需继续处理包含目标下标 n − k 的那一侧，另一侧不必排序。
+
+**复杂度**：时间平均 O(n)、最坏 O(n²)，空间 O(1)。
 
 ```Python
 # 215. 数组中的第 K 个最大元素
@@ -2588,6 +2968,10 @@ class Solution:
 
 #### [78. 子集](https://leetcode.cn/problems/subsets/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：回溯有两种视角——“选或不选”对每个元素决定取舍，递归到叶子即得到一个子集；“枚举哪一个”则在每层枚举下一个要选的下标，进入函数就记录 path。
+
+**复杂度**：时间 O(n · 2ⁿ)（每个子集复制 path 需 O(n)），空间 O(n)（递归栈）。
+
 ```Python
 # 78. 子集
 # 方法一 选或不选（输入视角）
@@ -2636,6 +3020,10 @@ class Solution:
 
 #### [17. 电话号码的字母组合](https://leetcode.cn/problems/letter-combinations-of-a-phone-number?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：回溯按位枚举，`path[i]` 依次尝试该数字对应的每个字母，填满 n 位就是一个组合。
+
+**复杂度**：时间 O(4ⁿ · n)，空间 O(n)（递归栈，不计答案）。
+
 ```Python
 MAPPING = "", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"
 
@@ -2661,6 +3049,10 @@ class Solution:
 ```
 
 #### [131. 分割回文串](https://leetcode.cn/problems/palindrome-partitioning/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：回溯枚举每个子串的结束位置，若子串是回文就加入 path 并从其后继续分割（选或不选视角则是决定当前字符是否作为切割点）；用中心扩展或区间 DP 预处理回文表可把判断降到 O(1)。
+
+**复杂度**：时间 O(n · 2ⁿ)，空间 O(n)。
 
 ```Python
 # 131. 分割回文串
@@ -2717,6 +3109,10 @@ class Solution:
 
 #### [93. 复原 IP 地址](https://leetcode.cn/problems/restore-ip-addresses/description/)
 
+**思路**：回溯切分 4 段，每段长度 1 到 3、数值 ≤ 255 且不允许前导零；用“剩余字符数能否凑出剩余段数”剪枝，path 按段直接覆盖因而无需回溯还原。
+
+**复杂度**：时间 O(3⁴ · n)（常数级枚举），空间 O(n)（递归栈）。
+
 ```Python
 # 93. 复原 IP 地址
 class Solution:
@@ -2754,6 +3150,10 @@ class Solution:
 ### 组合型
 
 #### [77. 组合](https://leetcode.cn/problems/combinations/)
+
+**思路**：回溯枚举选哪些数（或“选或不选”），用 `d = k - len(path)` 记录还差几个数，剩余可选的数不足 d 个时不再展开。
+
+**复杂度**：时间 O(C(n, k) · k)，空间 O(k)。
 
 ```Python
 # 77. 组合
@@ -2803,6 +3203,10 @@ class Solution:
 ```
 
 #### [39. 组合总和](https://leetcode.cn/problems/combination-sum/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：回溯枚举组合，因为元素可以重复使用，下一层仍从下标 j 开始（而非 j + 1）；排序后可提前 break 掉超过剩余目标值的分支。
+
+**复杂度**：时间 O(n^(target / min))（搜索树规模），空间 O(target / min)（递归栈）。
 
 ```Python
 # 39. 组合总和
@@ -2857,6 +3261,10 @@ class Solution:
 
 #### [22. 括号生成](https://leetcode.cn/problems/generate-parentheses/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：回溯逐位放置括号，只需保证“左括号数 < n”和“右括号数 < 左括号数”两个条件，生成的串必然合法，无需额外校验。
+
+**复杂度**：时间 O(C(2n, n) · n)（结果为第 n 个卡特兰数），空间 O(n)。
+
 ```Python
 class Solution:
     def generateParenthesis(self, n: int) -> List[str]:
@@ -2881,6 +3289,10 @@ class Solution:
 ### 排列型
 
 #### [46. 全排列](https://leetcode.cn/problems/permutations/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：回溯按位置枚举，`path[i]` 从未使用的元素中挑一个，用布尔数组（或原地交换）标记已选元素，填满 n 位即得一种排列。
+
+**复杂度**：时间 O(n · n!)，空间 O(n)（不计答案）。
 
 ```Python
 # 46. 全排列
@@ -2911,6 +3323,10 @@ class Solution:
 
 #### [121. 买卖股票的最佳时机](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：贪心一次遍历，维护历史最低买入价，用当天价格减最低买入价更新最大利润。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 121. 买卖股票的最佳时机
 # 方法一 贪心
@@ -2925,6 +3341,10 @@ class Solution:
 ```
 
 #### [53. 最大子数组和](https://leetcode.cn/problems/maximum-subarray/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：前缀和 + 贪心——以 i 结尾的最大子数组和 = 当前前缀和 − 之前出现过的最小前缀和，遍历时同步维护最小前缀和。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 53. 最大子数组和
@@ -2942,11 +3362,19 @@ class Solution:
 
 #### [179. 最大数](https://leetcode.cn/problems/largest-number/description/)
 
+**思路**：贪心排序——自定义比较规则，若 `a + b > b + a` 则 a 应排在 b 前面（Python 可用 `cmp_to_key` 实现），拼接后去掉前导零，若结果为空则返回 "0"。
+
+**复杂度**：时间 O(n log n · L)（L 为字符串长度），空间 O(n · L)。
+
 ```Python
 # 179. 最大数
 ```
 
 #### [55. 跳跃游戏](https://leetcode.cn/problems/jump-game/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：贪心维护当前能到达的最远下标 mx，遍历时若 `i > mx` 说明 i 不可达（更远的更不可达），否则更新 `mx = max(mx, i + nums[i])`。
+
+**复杂度**：时间 O(n)，空间 O(1)。
 
 ```Python
 # 55. 跳跃游戏
@@ -2965,6 +3393,10 @@ class Solution:
 ### 入门
 
 #### [509. 斐波那契数](https://leetcode.cn/problems/fibonacci-number/description/)
+
+**思路**：DP 递推 `dp[i] = dp[i-1] + dp[i-2]`（只依赖前两项，可压缩为两个变量）；朴素递归会重复计算同一子问题，规模指数级。
+
+**复杂度**：DP 时间 O(n)、空间 O(n)（压缩后 O(1)）；朴素递归时间 O(2ⁿ)、空间 O(n)。
 
 ```Python
 # 509. 斐波那契数
@@ -2992,6 +3424,10 @@ class Solution:
 
 #### [118. 杨辉三角](https://leetcode.cn/problems/pascals-triangle/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：每行首尾固定为 1，内部元素 `ans[i][j] = ans[i-1][j-1] + ans[i-1][j]`（将三角左对齐后逐行递推）。
+
+**复杂度**：时间 O(numRows²)，空间 O(1)（不计答案）。
+
 ```Python
 # 118. 杨辉三角
 class Solution:
@@ -3005,6 +3441,10 @@ class Solution:
 ```
 
 #### [70. 爬楼梯](https://leetcode.cn/problems/climbing-stairs?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：记忆化搜索——`dfs(i) = dfs(i-1) + dfs(i-2)`，用 `@cache` 把指数级递归降为 n 个子问题。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 70. 爬楼梯
@@ -3021,6 +3461,10 @@ class Solution:
 ```
 
 #### [198. 打家劫舍](https://leetcode.cn/problems/house-robber/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：记忆化搜索，`dfs(i)` 表示考虑前 i 间房子的最大金额，转移为选或不选：`max(dfs(i-1), dfs(i-2) + nums[i])`。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 198. 打家劫舍
@@ -3042,6 +3486,10 @@ class Solution:
 对于动态规划问题，递归对应自顶向下的解法，其可以转化为自底向上的递推解法（dp table）。
 
 #### [70. 爬楼梯](https://leetcode.cn/problems/climbing-stairs?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：把记忆化搜索改写为自底向上的递推 `dp[i] = dp[i-1] + dp[i-2]`；由于只依赖前两项，可用两个变量滚动压缩空间。
+
+**复杂度**：时间 O(n)，空间 O(n)（滚动变量后 O(1)）。
 
 ```Python
 # 70. 爬楼梯
@@ -3069,6 +3517,10 @@ class Solution:
 ```
 
 #### [322. 零钱兑换](https://leetcode.cn/problems/coin-change/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：完全背包求最小值，`dp[i]` 表示凑出金额 i 的最少硬币数，转移 `dp[i] = min(dp[i], dp[i - coin] + 1)`，初值用“不可达”哨兵（amount + 1）。
+
+**复杂度**：时间 O(amount · n)，空间 O(amount)。
 
 ```Python
 # 322. 零钱兑换
@@ -3127,6 +3579,10 @@ def zero_one_knapsack(capacity: int, w: List[int], v: List[int]) -> int:
 
 #### [416. 分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：转化为 0-1 背包可行性问题——总和为奇数直接返回 False，否则判断能否选出和为 total / 2 的子集：`dp[i][j] = dp[i-1][j] or dp[i-1][j - nums[i-1]]`，可压缩为一维逆序更新。
+
+**复杂度**：时间 O(n · target)，空间 O(target)。
+
 ```Python
 # 416. 分割等和子集
 class Solution:
@@ -3159,6 +3615,10 @@ class Solution:
 
 #### [279. 完全平方数](https://leetcode.cn/problems/perfect-squares/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：完全背包求最小值，把 1², 2², …, ⌊√n⌋² 视为可重复取且价值为 1 的物品，`dp[j] = min(dp[j], dp[j - i²] + 1)`；一次性预处理到上限后可 O(1) 回答。
+
+**复杂度**：预处理时间 O(N√N)，空间 O(N)；单次查询 O(1)。
+
 ```Python
 # 279. 完全平方数
 N = 10**4
@@ -3176,6 +3636,10 @@ class Solution:
 ```
 
 #### [518. 零钱兑换 II](https://leetcode.cn/problems/coin-change-ii/description/)
+
+**思路**：完全背包求方案数，`dp[i][j] = dp[i-1][j] + dp[i][j - coins[i-1]]`（同一硬币可再用，所以第二维仍是 i），可压缩为一维正序更新；注意内外层循环顺序决定“组合”还是“排列”。
+
+**复杂度**：时间 O(n · amount)，空间 O(amount)。
 
 ```Python
 # 518. 零钱兑换 II
@@ -3200,6 +3664,10 @@ class Solution:
 
 #### [300. 最长递增子序列](https://leetcode.cn/problems/longest-increasing-subsequence/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：`dp[i]` 表示以 nums[i] 结尾的最长递增子序列长度，枚举前面的 j 做转移 `dp[i] = max(dp[i], dp[j] + 1)`；进阶用贪心 + 二分维护“长度为 L 的递增子序列的最小结尾值”，把复杂度降到 O(n log n)。
+
+**复杂度**：DP 时间 O(n²)、空间 O(n)；贪心 + 二分时间 O(n log n)、空间 O(n)。
+
 ```Python
 # 300. 最长递增子序列
 class Solution:
@@ -3214,6 +3682,10 @@ class Solution:
 ```
 
 #### [1143. 最长公共子序列](https://leetcode.cn/problems/longest-common-subsequence/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：`dp[i][j]` 表示 text1 前 i 个字符与 text2 前 j 个字符的 LCS 长度：末字符相同则 `dp[i-1][j-1] + 1`，不同则 `max(dp[i-1][j], dp[i][j-1])`；可用滚动数组（并暂存左上角的值）压缩空间。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（压缩后 O(n)）。
 
 ```Python
 # 1143. 最长公共子序列
@@ -3252,6 +3724,10 @@ class Solution:
 ```
 
 #### [72. 编辑距离](https://leetcode.cn/problems/edit-distance/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：`dp[i][j]` 表示把 word1 前 i 个字符变成 word2 前 j 个字符的最少操作数：末字符相同则继承 `dp[i-1][j-1]`，否则在删除 `dp[i-1][j]`、插入 `dp[i][j-1]`、替换 `dp[i-1][j-1]` 三者中取最小再加一。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（压缩后 O(n)）。
 
 ```Python
 # 72. 编辑距离
@@ -3299,6 +3775,10 @@ class Solution:
 
 #### [53. 最大子数组和](https://leetcode.cn/problems/maximum-subarray/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：`dp[i]` 表示以 nums[i] 结尾的最大子数组和，转移为 `dp[i] = max(dp[i-1], 0) + nums[i]`，答案为 dp 的最大值；只依赖前一项，可用一个变量滚动。
+
+**复杂度**：时间 O(n)，空间 O(n)（压缩后 O(1)）。
+
 ```Python
 # 53. 最大子数组和
 # 方法二 动态规划
@@ -3328,6 +3808,10 @@ class Solution:
 
 #### [1262. 可被三整除的最大和](https://leetcode.cn/problems/greatest-sum-divisible-by-three/description/)
 
+**思路**：按模 3 的余数建立状态，`dp[r]` 表示当前“和 mod 3 == r”的最大和，逐个元素用旧状态更新新状态 `dp[(r + x) % 3] = max(…, dp[r] + x)`。
+
+**复杂度**：时间 O(n)，空间 O(1)（只有 3 个状态）。
+
 ```Python
 # 1262. 可被三整除的最大和
 class Solution:
@@ -3344,6 +3828,10 @@ class Solution:
 ```
 
 #### [152. 乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：因为负负得正，同时维护以 i 结尾的最大乘积与最小乘积，转移时都考虑 `dp_max[i-1]*x`、`dp_min[i-1]*x` 与 x 本身三种情况。
+
+**复杂度**：时间 O(n)，空间 O(n)（可压缩为 O(1)）。
 
 ```Python
 class Solution:
@@ -3364,6 +3852,10 @@ class Solution:
 
 #### [62. 不同路径](https://leetcode.cn/problems/unique-paths/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：`dp[i][j]` 表示到达 (i, j) 的路径数，只能从上方或左方过来，故 `dp[i][j] = dp[i-1][j] + dp[i][j-1]`；多开一行一列并把 `dp[0][1]` 置 1，可省去边界特判。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（压缩后 O(n)）。
+
 ```Python
 # 62. 不同路径
 class Solution:
@@ -3378,6 +3870,10 @@ class Solution:
 ```
 
 #### [63. 不同路径 II](https://leetcode.cn/problems/unique-paths-ii/description/)
+
+**思路**：与 62 相同，只是遇到障碍物时该位置的 dp 值保持 0（相当于把这条路径全部封死）。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（可压缩为 O(n)）。
 
 ```Python
 # 63. 不同路径 II
@@ -3395,6 +3891,10 @@ class Solution:
 ```
 
 #### [64. 最小路径和](https://leetcode.cn/problems/minimum-path-sum/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：`dp[i][j]` 表示到达 (i, j) 的最小路径和，转移 `dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j]`；边界初值设为 inf 以省去特判。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（可压缩为 O(n)）。
 
 ```Python
 # 64. 最小路径和
@@ -3415,6 +3915,10 @@ class Solution:
 
 #### [198. 打家劫舍](https://leetcode.cn/problems/house-robber/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：递推写法，`dp[i + 2] = max(dp[i + 1], dp[i] + nums[i])`（选或不选第 i 间房），多开两位的 dp 数组可避开边界判断。
+
+**复杂度**：时间 O(n)，空间 O(n)（可压缩为 O(1)）。
+
 ```Python
 # 198. 打家劫舍
 # 方法二 递推
@@ -3429,6 +3933,10 @@ class Solution:
 ```
 
 #### [213. 打家劫舍 II](https://leetcode.cn/problems/house-robber-ii/description/)
+
+**思路**：环形房屋的额外约束只是“第一间和最后一间不能同时偷”，于是拆成两个线性问题：偷第一间（最后一间不能偷）、不偷第一间（其余自由），取二者最大值并复用 198. 的解法。
+
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 213. 打家劫舍 II
@@ -3450,6 +3958,10 @@ class Solution:
 ### 状态机 DP 股票系列问题
 
 #### [121. 买卖股票的最佳时机](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：状态机 DP，每天两个状态“持有 / 不持有股票”：`dp[i][0] = max(dp[i-1][0], dp[i-1][1] + p)`、`dp[i][1] = max(dp[i-1][1], -p)`（只允许买一次，故买入价直接取负），答案为不持有股票时的最大值；空间优化后即与贪心写法一致。
+
+**复杂度**：时间 O(n)，空间 O(n)（压缩后 O(1)）。
 
 ```Python
 # 121. 买卖股票的最佳时机
@@ -3482,6 +3994,10 @@ class Solution:
 
 #### [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/description/)
 
+**思路**：与 121 同一状态机，区别是买入时用 `dp[i][0] - p`（允许用已有利润再次买入），即不限制交易次数。
+
+**复杂度**：时间 O(n)，空间 O(n)（可压缩为 O(1)）。
+
 ```Python
 # 122. 买卖股票的最佳时机 II
 class Solution:
@@ -3497,6 +4013,10 @@ class Solution:
 ```
 
 #### [714. 买卖股票的最佳时机含手续费](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/description/)
+
+**思路**：在 122 的状态机基础上，卖出时额外扣掉手续费 fee。
+
+**复杂度**：时间 O(n)，空间 O(n)（可压缩为 O(1)）。
 
 ```Python
 # 714. 买卖股票的最佳时机含手续费
@@ -3514,6 +4034,10 @@ class Solution:
 
 #### [309. 买卖股票的最佳时机含冷冻期](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown/description/)
 
+**思路**：状态机上多留一天表示冷冻期，买入只能从“两天前已卖出”的状态转移，因此用多开一位的 dp 数组（`dp[i][0] - p` 改为 `dp[i-1][0] - p`）实现。
+
+**复杂度**：时间 O(n)，空间 O(n)（可压缩为 O(1)）。
+
 ```Python
 # 309. 买卖股票的最佳时机含冷冻期
 class Solution:
@@ -3530,6 +4054,10 @@ class Solution:
 ### 区间 DP
 
 #### [5. 最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：区间 DP，`dp[i][j]` 表示 s[i..j] 是否回文，由 `s[i] == s[j] and dp[i+1][j-1]` 转移，因此需要按区间长度从小到大枚举。
+
+**复杂度**：时间 O(n²)，空间 O(n²)。
 
 ```Python
 # 5. 最长回文子串
@@ -3568,6 +4096,10 @@ class Solution:
 
 #### [516. 最长回文子序列](https://leetcode.cn/problems/longest-palindromic-subsequence/description/)
 
+**思路**：区间 DP，`dp[i][j]` 表示 s[i..j] 的最长回文子序列长度：两端字符相同则 `dp[i+1][j-1] + 2`，否则取 `max(dp[i+1][j], dp[i][j-1])`，按区间长度从小到大枚举。
+
+**复杂度**：时间 O(n²)，空间 O(n²)（可压缩为 O(n)）。
+
 ```Python
 # 516. 最长回文子序列
 ```
@@ -3577,6 +4109,10 @@ class Solution:
 ## 图
 
 #### [200. 岛屿数量](https://leetcode.cn/problems/number-of-islands/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：遍历网格，遇到一块陆地就岛屿数加一，并用 DFS/BFS 把与之连通的陆地全部标记为已访问，避免重复计数；与并查集做法等价（合并相邻陆地，剩余集合数即答案）。
+
+**复杂度**：时间 O(mn)，空间 O(mn)（DFS 递归栈或 BFS 队列最坏情况）。
 
 ```Python
 # 200. 岛屿数量
@@ -3634,6 +4170,10 @@ class Solution:
 ```
 
 #### [994. 腐烂的橘子](https://leetcode.cn/problems/rotting-oranges/description/?envType=study-plan-v2&envId=top-100-liked)
+
+**思路**：多源 BFS——先把所有腐烂橘子入队并统计新鲜橘子数，每轮把队列中腐烂橘子的四邻新鲜橘子变腐烂并入队，轮数即分钟数；结束后仍有新鲜橘子则返回 −1。
+
+**复杂度**：时间 O(mn)，空间 O(mn)。
 
 ```Python
 # 994. 腐烂的橘子
