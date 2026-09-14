@@ -525,7 +525,7 @@ class Solution:
         for i, x in enumerate(nums):
             pre_sum[i+1] = pre_sum[i] + x
         ans = 0
-        cnt = defasult(int)
+        cnt = defaultdict(int)
         for s in pre_sum:
             # 查找之前有多少个前缀和等于 pre_sum - k，如果存在，说明从那些位置到当前位置的子数组和为 k
             ans += cnt[pre_sum - k]
@@ -904,12 +904,12 @@ class Solution:
 
 ```Python
 # 11. 盛最多水的容器
-Class Solution:
+class Solution:
     def maxArea(self, height: List[int]) -> int:
         left, right = 0, len(height) - 1
         ans = 0
         while left < right:
-            area = min(height[left], height[right]) * (right - l)
+            area = min(height[left], height[right]) * (right - left)
             ans = max(ans, area)
             if height[left] <= height[right]:
                 left += 1
@@ -3165,7 +3165,7 @@ class Solution:
         def backtrack(i):
             d = k - len(path)
             if d == 0:
-                ans.append(path.copy)
+                ans.append(path.copy())
                 return 
     
             # 不选 i
@@ -3511,7 +3511,7 @@ class Solution:
         dp_0 = dp_1 = 1
         for i in range(2, n+1):
             dp_new = dp_0 + dp_1
-            dp_0 = dp1
+            dp_0 = dp_1
             dp_1 = dp_new
         return dp_1
 ```
@@ -3588,12 +3588,12 @@ def zero_one_knapsack(capacity: int, w: List[int], v: List[int]) -> int:
 class Solution:
     def canPartition(self, nums: List[int]) -> bool:
         n = len(nums)
-        total_num = sum(nums)
+        total_sum = sum(nums)
         if total_sum % 2 != 0:
             return False
         # 相当于背包容量
         target = total_sum // 2
-        dp = [[False * (target + 1)] for _ in range(n + 1)]
+        dp = [[False] * (target + 1) for _ in range(n + 1)]
         for i in range(n + 1):
             dp[i][0] = True
         for i in range(1, n + 1):
@@ -4004,7 +4004,7 @@ class Solution:
     def maxProfit(self, prices: List[int]) -> int:
         n = len(prices)
         dp = [[0] * 2 for _ in range(n + 1)]
-        # dp[i][0] 表示前 i 天结束后，手里没有股票时的最大利润，dp[i][1] 表示前 i 天结束后，手里没有股票时的最大利润
+        # dp[i][0] 表示前 i 天结束后，手里没有股票时的最大利润，dp[i][1] 表示前 i 天结束后，手里持有股票时的最大利润
         dp[0][1] = -inf 
         for i, p in enumerate(prices):
             dp[i+1][0] = max(dp[i][0], dp[i][1] + p) # 什么都不做或卖掉股票
@@ -4325,7 +4325,7 @@ class MultiHeadAttention(nn.Module):
 ```Python
 import torch
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
 
 class MultiHeadCrossAttention(nn.Module):
     def __init__(self, num_heads, hidden_dim):
@@ -4352,7 +4352,7 @@ class MultiHeadCrossAttention(nn.Module):
         scores = torch.matmul(q, k.transpose(-2, -1)) * (self.d_k ** -0.5) 
 
         if mask is not None:
-            scores = socres.masked_fill(mask == 0, float('-inf'))
+            scores = scores.masked_fill(mask == 0, float('-inf'))
 
         attn = F.softmax(scores, dim=-1)
 
