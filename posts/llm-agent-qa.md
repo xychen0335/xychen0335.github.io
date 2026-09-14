@@ -2,7 +2,7 @@
 title: 'LLM & Agent 基础'
 date: 2026-09-06 16:06:25
 tags: [LLM,Agent,大模型]
-category: 学习
+category: 求职
 published: true
 hideInList: false
 feature: 
@@ -124,7 +124,9 @@ $$
 
 ### Q5：大模型微调的方式，区别？
 
-### A5：可以分为全量微调及参数高效微调。
+### A5：
+
+可以分为全量微调及参数高效微调。
 
 * 全量微调 (Full Fine-Tuning)：
 
@@ -162,7 +164,7 @@ $$
 
 ### A7：
 
-MoE（混和专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络，输入 token 经过路由器输出一个权重向量，之后根据门控机制选择（Top-k，稀疏激活）去哪几个专家。
+MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络，输入 token 经过路由器输出一个权重向量，之后根据门控机制选择（Top-k，稀疏激活）去哪几个专家。
 
 * Dense 架构：对于输入的每一个 Token，模型都会激活网络中的所有参数参与计算，无论输入简单还是复杂，计算量是固定的。
   * 优势：训练稳定、微调简单；
@@ -340,6 +342,34 @@ MoE（混和专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
 
 ### A22：
 
+学生自己采样轨迹，教师对这条轨迹上的每个 token 打分。轨迹是 on-policy 的，监督是逐 token 稠密的。
+
+#### 1. 训练流程
+
+* 学生根据 prompt 自己 rollout，得到轨迹以及 $\log \pi_\theta(x_t \mid x_{<t})$；
+* 教师只做一次前向，在同一条学生轨迹上算 $\log \pi_{\text{teacher}}(x_t \mid x_{<t})$，自己不生成；
+* 把 per-token reverse KL 当作稠密奖励，advantage 取负 KL，再用 importance sampling / PPO 一类的策略梯度更新学生。
+
+$$
+A_t = \log \pi_{\text{teacher}}(x_t \mid x_{<t}) - \log \pi_\theta(x_t \mid x_{<t}).
+$$
+
+#### 2. 损失函数
+
+$$
+\mathrm{KL}(\pi_\theta \Vert \pi_{\text{teacher}}) = \mathbb{E}_{x \sim \pi_\theta}\bigl[\log \pi_\theta(x_{t+1} \mid x_{1..t}) - \log \pi_{\text{teacher}}(x_{t+1} \mid x_{1..t})\bigr].
+$$
+
+* Reverse KL（mode-seeking）：期望在学生分布上算。学生去贴教师的主模式，而不是把教师长尾里的低质量写法都学过来。
+* Forward KL（mode-covering）：期望在教师分布上算，对应 SFT / 经典 logit 蒸馏。学生要覆盖教师所有模式，容易把概率堆到教师几乎不会写的 token 上。
+* 学生与教师一致时 KL 为 0。从教师视角看，低 KL 就是高概率行为，比普通奖励模型更不容易 reward hacking。
+
+#### 3. 和 SFT、RL 的区别
+
+* **SFT / Off-policy Distillation**：off-policy + 稠密。训练数据是教师（或标注）轨迹，学生学的是教师常去的状态。自己一旦走偏，后续前缀在训练里没见过，错误沿序列累积（exposure bias）。
+* **RL（PPO / GRPO）**：on-policy + 稀疏。奖励多在序列结束才给一次，大约 $O(1)$ bits / episode，不知道错在哪一步。
+* **OPD**：on-policy + 稠密。学生自己采样，教师对每个 token 给反馈，大约 $O(N)$ bits / episode。工程上常直接改现有 RL 训练器：把 KL 正则的 reference 换成教师，`advantage = teacher_logprob - student_logprob`。
+
 ### Q23：DeepSeek V4 的改进？
 
 ### A23：
@@ -445,22 +475,28 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
 
 ### A9：
 
-Agent 的工作模式描述的是“推理—行动—反馈”如何组织成可循环的控制流，不同模式在规划深度、工具调用频率和纠错能力上有取舍。下面前三类（ReAct / Plan-and-Execute / Reflection）是当前主流与面试重点，其余作补充了解。
+根据主流的 Agent 框架及 Coding Agent，Agent 的工作模式主要可以分为以下：
 
-* ⭐ **ReAct（Reason + Act）**：交替输出 Thought（推理）与 Action（工具调用），再根据 Observation（环境反馈）继续循环，直到给出 Final Answer。优点是边想边做、可纠偏；缺点是步数多、上下文易膨胀，规划不够全局。
-* ⭐ **Plan-and-Execute**：先一次性或分阶段生成完整计划（Plan），再按步骤执行（Execute），执行中可按需重规划。优点是目标清晰、适合长任务；缺点是初始计划可能过时，需要 Replan 机制兜底。
-* ⭐ **Reflection**：在 ReAct 或执行之后增加自评与反思，把失败原因写入记忆，指导下一次重试。偏“事后纠错”，适合可验证任务（代码、刷题、检索对错）。
-* CoT / ToT：
-  * Chain-of-Thought：单路径逐步推理，偏“想清楚再答”，本身不一定调工具；
-  * Tree-of-Thoughts：多路径搜索与剪枝，适合开放式难题，成本更高。
-* Function Calling / Tool-use：模型直接产出结构化工具调用（JSON Schema），Harness 负责执行并回填结果；可与 ReAct 结合——ReAct 提供控制流，Function Calling 提供接口形态。
-* CodeAct：把行动统一成写/跑代码（而不是分散的 API 调用），用代码作为通用动作空间，表达力强，适合数据分析、文件操作类任务。
-* 选型直觉：短链路工具任务用 ReAct / Function Calling；长链路多步骤用 Plan-and-Execute；需要强纠错与自进化加 Reflection；强搜索空间用 ToT；动作高度异构时优先 CodeAct。
+* **ReAct（Reason + Act）**：交替输出 Thought（推理）与 Action（工具调用），再根据 Observation（环境反馈）继续循环，直到给出 Final Answer。优点是边想边做、可纠偏；缺点是步数多、上下文易膨胀，规划不够全局。
+* **Plan-and-Execute**：先一次性或分阶段生成完整计划（Plan），再按步骤执行（Execute），执行中可按需重规划。优点是目标清晰、适合长任务；缺点是初始计划可能过时，需要 Replan 机制兜底。
+* **Reflection**：在 ReAct 或执行之后增加自评与反思，把失败原因写入记忆，指导下一次重试。偏“事后纠错”，适合可验证任务（代码、刷题、检索对错）。
+* **DAG（Directed Acyclic Graph，有向无环图）**：把复杂任务拆成多个节点，用有向边显式描述步骤之间的依赖关系，由编排层按依赖推进执行。核心是先明确“哪些步骤依赖哪些结果、哪些步骤可以并行”。优点是流程可控、方便并行与排查；缺点是需要设计任务结构，对反复试错、动态回退的任务适应性较差。
+
+  * 节点与边：节点可以是一次 LLM 调用、工具执行、普通函数，也可以封装一个 Agent；边表示执行方向与依赖，例如 $A \rightarrow B$ 表示 B 依赖 A 的结果。多个节点不一定意味着多个 Agent。
+  * 无环与调度：沿有向边不能回到原节点，因此可以按拓扑顺序执行。有依赖的步骤先后执行，没有相互依赖且输入已就绪的步骤可以并行；汇合节点需要等待它依赖的分支完成。
+  * 例子：资料问答可以拆成“问题解析 → 并行检索知识库和网页 → 合并去重 → 生成答案”。两路检索都依赖问题解析，但彼此独立，可以同时进行；合并节点等两路结果到齐后再执行。
+  * 与 Plan-and-Execute 的关系：Plan-and-Execute 关注先规划再执行，DAG 关注如何表达计划中的依赖与并行关系。规划器可以生成 DAG，再交给执行器调度，两者可以组合使用。
+  * LangGraph 的实现思路：用 State 保存问题、检索结果等任务状态，Node 读取状态并返回更新，Edge 决定下一步执行哪个节点，也可以通过条件边按状态分流。并行分支更新同一状态字段时，需要定义 Reducer 合并规则，例如把两路检索结果追加到同一个列表。见 [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)。
+  * DAG 与 LangGraph 的区别：LangGraph 支持有环图，可以表达“模型 → 工具 → 模型”的 ReAct 循环，也可以在校验失败后返回修改节点。严格的 DAG 不包含这种回边；它只是 LangGraph 能实现的一类流程。有环流程需要明确退出条件，并设置步数上限。见 [LangGraph 工作流与 Agent](https://docs.langchain.com/oss/python/langgraph/workflows-agents)。
 
 ### Q10：Loop Engineering？
 
+### A10：
+
 
 ### Q11：Graph Engineerung？
+
+### A11：
 
 ---
 
