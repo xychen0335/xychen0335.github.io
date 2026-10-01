@@ -3869,6 +3869,19 @@ class Solution:
         return dp[m][n]
 ```
 
+```Python
+# 62. 不同路径 -- 空间压缩
+# 空间复杂度 O(n)
+class Solution:
+    def uniquePaths(self, m: int, n: int) -> int:
+        dp = [0] * (n + 1)
+        dp[1] = 1
+        for _ in range(m):
+            for j in range(n):
+                dp[j + 1] += dp[j]
+        return dp[n]
+```
+
 #### [63. 不同路径 II](https://leetcode.cn/problems/unique-paths-ii/description/)
 
 **思路**：与 62 相同，只是遇到障碍物时该位置的 dp 值保持 0（相当于把这条路径全部封死）。
@@ -3890,6 +3903,27 @@ class Solution:
         return dp[m][n]
 ```
 
+```Python
+# 63. 不同路径 II -- 空间压缩
+# 空间复杂度 O(1)
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        m, n = len(obstacleGrid), len(obstacleGrid[0])
+        dp = obstacleGrid[0]
+        dp[0] ^= 1  # 0 变成 1，1 变成 0
+        for j in range(1, n):
+            dp[j] = 0 if dp[j] else dp[j - 1]
+        for i in range(1, m):
+            if obstacleGrid[i][0]:
+                dp[0] = 0
+            for j in range(1, n):
+                if obstacleGrid[i][j] == 0:
+                    dp[j] += dp[j - 1]
+                else:
+                    dp[j] = 0
+        return dp[-1]
+```
+
 #### [64. 最小路径和](https://leetcode.cn/problems/minimum-path-sum/description/?envType=study-plan-v2&envId=top-100-liked)
 
 **思路**：`dp[i][j]` 表示到达 (i, j) 的最小路径和，转移 `dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j]`；边界初值设为 inf 以省去特判。
@@ -3909,6 +3943,22 @@ class Solution:
                 else:
                     dp[i + 1][j + 1] = min(dp[i + 1][j], dp[i][j + 1]) + x 
         return dp[m][n]
+```
+
+```Python
+# 64. 最小路径和 -- 空间压缩
+# # 空间复杂度 O(1)
+class Solution:
+    def minPathSum(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        dp = grid[0]  # 这里没有拷贝，dp 和 grid[0] 都持有同一段内存
+        for j in range(1, n):
+            dp[j] += dp[j - 1]
+        for i in range(1, m):
+            dp[0] += grid[i][0]
+            for j in range(1, n):
+                dp[j] = min(dp[j - 1], dp[j]) + grid[i][j]
+        return dp[-1]
 ```
 
 ### 打家劫舍系列问题
@@ -4216,6 +4266,89 @@ class Solution:
 ### 并查集
 
 ## 数学和技巧
+
+#### [136. 只出现一次的数字](https://leetcode.cn/problems/single-number/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 136. 只出现一次的数字
+class Solution:
+    def singleNumber(self, nums: List[int]) -> int:
+        return reduce(xor, nums)
+```
+
+#### [169. 多数元素](https://leetcode.cn/problems/majority-element/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 169. 多数元素
+class Solution:
+    def majorityElement(self, nums: List[int]) -> int:
+        cnt = Counter(nums)
+        n = len(nums)
+        return max(cnt, key=cnt.get)
+```
+
+#### [75. 颜色分类](https://leetcode.cn/problems/sort-colors/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 75. 颜色分类
+class Solution:
+    def sortColors(self, nums: list[int]) -> None:
+        """
+        Do not return anything, modify nums in-place instead.
+        """
+        p0 = p1 = 0 
+        for i, x in enumerate(nums):
+            nums[i] = 2 
+            if x <= 1:
+                nums[p1] = 1
+                p1 += 1
+            if x == 0:
+                nums[p0] = 0 
+                p0 += 1
+```
+
+#### [31. 下一个排列](https://leetcode.cn/problems/next-permutation/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 31. 下一个排列
+class Solution:
+    def nextPermutation(self, nums: list[int]) -> None:
+        """
+        Do not return anything, modify nums in-place instead.
+        """
+        n = len(nums)
+
+        i = n - 2
+        while i >= 0 and nums[i] >= nums[i + 1]:
+            i -= 1
+        
+        if i >= 0:
+            j = n - 1
+            while nums[j] <= nums[i]:
+                j -= 1
+            nums[i], nums[j] = nums[j], nums[i]
+        
+        left, right = i + 1, n - 1
+        while left < right:
+            nums[left], nums[right] = nums[right], nums[left]
+            left += 1
+            right -= 1
+```
+
+#### [287. 寻找重复数](https://leetcode.cn/problems/find-the-duplicate-number/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 287. 寻找重复数
+class Solution:
+    def findDuplicate(self, nums: List[int]) -> int:
+        for x in nums:
+            idx = abs(x) - 1
+            if nums[idx] < 0:
+                ans = abs(x)
+            else:
+                nums[idx] = -nums[idx]
+        return ans
+```
 
 ## 算法相关手撕
 
