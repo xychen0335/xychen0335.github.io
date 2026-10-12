@@ -8,7 +8,6 @@ hideInList: true
 feature: 
 isTop: false
 ---
-
 # LeetCode 刷题记录
 
 基于《代码随想录》、灵茶山艾府及 LeetCode Hot 100.
@@ -40,7 +39,6 @@ for i in range(1, len(pre_product)):
 suffix_product = [1] * (len(nums) + 1)
 for i in range(len(nums) - 1, -1, -1):
     suffix_product[i] = nums[i] * suffix_product[i+1]
-
 ```
 
 #### [303. 区域和检索 - 数组不可变](https://leetcode.cn/problems/range-sum-query-immutable/description/)
@@ -56,7 +54,7 @@ class NumArray:
         self.pre_sum = [0] * (len(nums) + 1)
         for i in range(1, len(self.pre_sum)):
             self.pre_sum[i] = nums[i-1] + self.pre_sum[i-1]
-      
+    
     def sumRange(self, left: int, right: int) -> int:
         return self.pre_sum[right + 1] - self.pre_sum[left]
 ```
@@ -80,7 +78,7 @@ class NumMatrix:
         for i in range(1, m+1):
             for j in range(1, n+1):
                 self.presum[i][j] = self.presum[i][j-1] + self.presum[i-1][j] + matrix[i-1][j-1] - self.presum[i-1][j-1]
-      
+    
     def sumRegion(self, row1: int, col1: int, row2: int, col2: int) -> int:
         return self.presum[row2+1][col2+1] - self.presum[row1][col2+1] - self.presum[row2+1][col1] + self.presum[row1][col1]
 ```
@@ -423,7 +421,7 @@ class Solution:
         # for i in nums1:
         #     for j in nums2:
         #         rec[i+j] += 1
-      
+    
         # for i in nums3:
         #     for j in nums4:
         #         cnt += rec[-i-j]
@@ -434,7 +432,7 @@ class Solution:
         for i in nums1:
             for j in nums2:
                 rec[i+j] += 1
-      
+    
         for i in nums3:
             for j in nums4:
                 cnt += rec[-i-j]
@@ -505,7 +503,7 @@ class Solution:
                     current_list += 1
 
                 ans = max(ans, current_list)
-      
+    
         return ans
 ```
 
@@ -959,22 +957,22 @@ class Solution:
                 break
             if x + nums[-2] + nums[-1] < 0:  # 优化二
                 continue
-            j = i + 1
-            k = n - 1
-            while j < k:
-                s = x + nums[j] + nums[k]
+            left = i + 1
+            right = n - 1
+            while left < right:
+                s = x + nums[left] + nums[right]
                 if s > 0:
-                    k -= 1
+                    right -= 1
                 elif s < 0:
-                    j += 1
+                    left += 1
                 else:  # 三数之和为 0
-                    ans.append([x, nums[j], nums[k]])
-                    j += 1 # 更新下标防止重复
-                    while j < k and nums[j] == nums[j - 1]:  # 跳过重复数字
-                        j += 1
-                    k -= 1 # 更新下标防止重复
-                    while k > j and nums[k] == nums[k + 1]:  # 跳过重复数字
-                        k -= 1
+                    ans.append([x, nums[left], nums[right]])
+                    left += 1 # 更新下标防止重复
+                    while left < right and nums[left] == nums[left - 1]:  # 跳过重复数字
+                        left += 1
+                    right -= 1 # 更新下标防止重复
+                    while right > left and nums[right] == nums[right + 1]:  # 跳过重复数字
+                        right -= 1
         return ans
 ```
 
@@ -1070,6 +1068,29 @@ class Solution:
                 ans_left, ans_right = l + 1, r  # 左闭右开区间
 
         return s[ans_left: ans_right]
+```
+
+#### [4. 寻找两个正序数组的中位数](https://leetcode.cn/problems/median-of-two-sorted-arrays/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 4. 寻找两个正序数组的中位数
+class Solution:
+    def findMedianSortedArrays(self, nums1: list[int], nums2: list[int]) -> float:
+        if len(nums1) > len(nums2):
+            nums1, nums2 = nums2, nums1
+        
+        m, n = len(nums1), len(nums2)
+        nums1 = [-inf] + nums1 + [inf]
+        nums2 = [-inf] + nums2 + [inf]
+
+        i, j = 0, (m + n + 1) // 2
+        while True:
+            if nums1[i] <= nums2[j + 1] and nums1[i + 1] > nums2[j]:
+                max1 = max(nums1[i], nums2[j])
+                min2 = min(nums1[i + 1], nums2[j + 1])
+                return max1 if (m + n) % 2 else (max1 + min2) / 2
+            i += 1
+            j -= 1
 ```
 
 ## 滑动窗口
@@ -1250,7 +1271,7 @@ class Solution:
 
 例子：
 
-#### [35. 搜索插入位置 & 34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/search-insert-position/description/?envType=study-plan-v2&envId=top-100-liked)
+#### [35. 搜索插入位置 &amp; 34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/search-insert-position/description/?envType=study-plan-v2&envId=top-100-liked)
 
 **思路**：二分查找第一个 ≥ target 的位置（lower_bound），该位置既是插入位置也是目标值首次出现的位置；求区间则再用 `lower_bound(target + 1) - 1` 得到最后一个位置。闭区间与开区间两种写法只是循环不变式不同。
 
@@ -1337,7 +1358,7 @@ class Solution:
         for i in range(m):
             for j in range(n):
                 nums.append(matrix[i][j])
-        
+      
         left, right = -1, m * n
         while left + 1 < right:
             mid = (left + right) // 2
@@ -1614,11 +1635,11 @@ class Solution:
             else:
                 p2.next = p
                 p2 = p2.next
-            
+          
             tmp = p.next # 如果不断开原来的连接，可能会出现环，最后一个节点可能指向前方某节点
             p.next = None
             p = tmp
-        
+      
         p1.next = dummy2.next
         return dummy1.next
 ```
@@ -1851,7 +1872,7 @@ class LRUCache:
         self.remove(node)
         self.push_front(node)
         return node
-        
+      
     def get(self, key: int) -> int:
         node = self.get_node(key)
         return node.value if node else -1 
@@ -1867,7 +1888,7 @@ class LRUCache:
             back_node = self.dummy.prev 
             del self.key_to_node[back_node.key]
             self.remove(back_node)
-    
+  
     def remove(self, x):
         x.prev.next = x.next 
         x.next.prev = x.prev 
@@ -1952,7 +1973,7 @@ class Solution:
             pre = cur
             cur = nxt
         return pre
-      
+    
     # 143. 重排链表
     def reorderList(self, head: Optional[ListNode]) -> None:
         mid = self.middleNode(head)
@@ -2082,7 +2103,7 @@ class Solution:
     def isValid(self, s: str) -> bool:
         if len(s) % 2 == 1:
             return False
-      
+    
         pairs ={
             "(":")",
             "[":"]",
@@ -2155,7 +2176,7 @@ class Solution:
                 stack[-1] *= x
             else:
                 stack[-1] = trunc(stack[-1] / x)
-        
+      
         return stack[0]
 ```
 
@@ -2406,11 +2427,11 @@ class Soution:
     def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
         self.traverse(root)
         return root
-    
+  
     def traverse(self, root):
         if not root:
             return
-        
+      
         # 交换左右子树
         tmp = root.left
         root.left = root.right
@@ -2515,12 +2536,12 @@ class Solution:
 # 543. 二叉树的直径
 class Solution:
     def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
-        self.ans = 0    
+        self.ans = 0  
 
         def dfs(node):
             if not node:
                 return 0
-            
+          
             left = dfs(node.left)
             right = dfs(node.right)
 
@@ -2863,7 +2884,7 @@ class Solution:
 
 #### 手撕快速排序
 
-**思路**：随机选取基准并交换到区间左端，双指针从两端向中间收缩，把小于基准的元素换到左边、大于基准的换到右边，最后把基准归位到 j，再递归排序左右两段。
+**思路**：划分抽成 `partition`——随机选基准换到区间左端，双指针从两端向中间收缩，把小于基准的换到左边、大于基准的换到右边，基准归位后返回下标 j。快排只对 `[left, j-1]` 和 `[j+1, right]` 递归，不再内联同一套划分。
 
 **复杂度**：时间平均 O(n log n)、最坏 O(n²)（随机基准降低最坏概率），空间 O(log n)（递归栈）。
 
@@ -2871,42 +2892,41 @@ class Solution:
 import random
 
 class Solution:
+    def partition(self, nums: List[int], left: int, right: int) -> int:
+        # 随机选择一个基准，放到左端，避免干扰后续划分
+        pivot_idx = random.randint(left, right)
+        pivot = nums[pivot_idx]
+        nums[left], nums[pivot_idx] = nums[pivot_idx], nums[left]
+
+        # 双指针：两端向中间收缩
+        i, j = left + 1, right
+        while True:
+            # 从左往右找第一个 >= pivot 的元素（应该放到右边）
+            while i <= j and nums[i] < pivot:
+                i += 1
+            # 从右往左找第一个 <= pivot 的元素（应该放到左边）
+            while i <= j and nums[j] > pivot:
+                j -= 1
+            if i >= j:
+                break
+            # 维护循环不变量，交换错位的元素
+            nums[i], nums[j] = nums[j], nums[i]
+            i += 1
+            j -= 1
+
+        # <= pivot ｜ j 为基准的下标 ｜ >= pivot
+        nums[left], nums[j] = nums[j], nums[left]
+        return j
+
     def sortArray(self, nums: List[int]) -> List[int]:
         def quicksort(left, right):
             # 递归终止条件：区间为空或只有一个元素
             if left >= right:
                 return
-            
-            # 随机选择一个基准
-            pivot_idx = random.randint(left, right)
-            pivot = nums[pivot_idx]
-            # 将 pivot 放到左端，避免干扰后续划分
-            nums[left], nums[pivot_idx] = nums[pivot_idx], nums[left]
-            
-            # 双指针：两端向中间收缩
-            i, j = left + 1, right
-            
-            while True:
-                # 从左往右找第一个 >= pivot 的元素（应该放到右边）
-                while i <= j and nums[i] < pivot:
-                    i += 1
-                # 从右往左找第一个 <= pivot 的元素（应该放到左边）
-                while i <= j and nums[j] > pivot:
-                    j -= 1
-                if i >= j:
-                    break
-                # 维护循环不变量，交换错位的元素
-                nums[i], nums[j] = nums[j], nums[i]
-                i += 1
-                j -= 1
-            
-            # <= pivot ｜ j 为基准的下标 ｜ >= pivot
-            nums[left], nums[j] = nums[j], nums[left]
-            
-            # 递归排序左右两边
+            j = self.partition(nums, left, right)
             quicksort(left, j - 1)
             quicksort(j + 1, right)
-        
+
         quicksort(0, len(nums) - 1)
         return nums
 ```
@@ -2926,7 +2946,7 @@ class Solution:
             pivot = nums[pivot_idx]
             nums[left], nums[pivot_idx] = nums[pivot_idx], nums[left]
             i, j = left + 1, right
-            
+          
             while True:
                 while i <= j and nums[i] < pivot:
                     i += 1
@@ -2985,7 +3005,7 @@ class Solution:
             if i == n:
                 ans.append(path.copy())
                 return
-          
+        
             # 不选 nums[i]
             backtrack(i + 1)
 
@@ -3032,7 +3052,7 @@ class Solution:
         n = len(digits)
         if n == 0:
             return []
-      
+    
         ans = []
         path = [''] * n
 
@@ -3067,16 +3087,16 @@ class Solution:
             if i == n:
                 ans.append(path.copy())
                 return 
-          
+        
             if i < n - 1:
                 backtrack(i + 1, start)
-          
+        
             t = s[start: i + 1]
             if t == t[::-1]:
                 path.append(t)
                 backtrack(i + 1, i + 1)
                 path.pop()
-          
+        
         backtrack(0, 0)
         return ans
 ```
@@ -3167,16 +3187,16 @@ class Solution:
             if d == 0:
                 ans.append(path.copy())
                 return 
-    
+  
             # 不选 i
             if i > d:
                 backtrack(i-1)
-    
+  
             # 选 i
             path.append(i)
             backtrack(i-1)
             path.pop()
-      
+    
         backtrack(n)
         return ans
 ```
@@ -3247,7 +3267,7 @@ class Solution:
             if _sum == 0:
                 ans.append(path.copy())
                 return 
-          
+        
             for j in range(i, len(candidates)):
                 if candidates[j] > _sum:
                     break
@@ -3281,7 +3301,7 @@ class Solution:
             if right < left:
                 path[left + right] = ')'
                 backtrack(left, right + 1)
-            
+          
         backtrack(0, 0)
         return ans
 ```
@@ -3388,6 +3408,24 @@ class Solution:
         return True
 ```
 
+#### [45. 跳跃游戏 II](https://leetcode.cn/problems/jump-game-ii/description/?envType=study-plan-v2&envId=top-100-liked)
+
+```Python
+# 45. 跳跃游戏 II
+class Solution:
+    def jump(self, nums: list[int]) -> int:
+        ans = 0
+        cur = 0 
+        nxt = 0
+        n = len(nums)
+        for i in range(n - 1):
+            nxt = max(nxt, i + nums[i])
+            if i == cur:
+                cur = nxt 
+                ans += 1 
+        return ans
+```
+
 ## 动态规划
 
 ### 入门
@@ -3405,7 +3443,7 @@ class Solution:
     def fib(self, n: int) -> int:
         if n == 0:
             return 0
-        dp = [0] * (n+1)
+        dp = [0] * (n+1) # dp[i] 定义为第 i 个斐波那契数
         dp[0] = 0
         dp[1] = 1
         for i in range(2, n+1):
@@ -3496,7 +3534,7 @@ class Solution:
 # 方法二 递推
 class Solution:
     def climbStairs(self, n: int) -> int:
-        dp = [0] * (n + 1)
+        dp = [0] * (n + 1) # dp[i] 定义为爬到第 i 阶的方法数
         dp[0] = dp[1] = 1
         for i in range(2, n+1):
             dp[i] = dp[i - 1] + dp[i - 2]
@@ -3508,7 +3546,7 @@ class Solution:
 # 递推 -- 空间压缩
 class Solution:
     def climbStairs(self, n: int) -> int:
-        dp_0 = dp_1 = 1
+        dp_0 = dp_1 = 1 # dp_0、dp_1 分别定义为爬到相邻两阶的方法数
         for i in range(2, n+1):
             dp_new = dp_0 + dp_1
             dp_0 = dp_1
@@ -3567,7 +3605,7 @@ def zero_one_knapsack(capacity: int, w: List[int], v: List[int]) -> int:
 # 递推
 def zero_one_knapsack(capacity: int, w: List[int], v: List[int]) -> int:
     n = len(w)
-    dp = [[0] * (capacity+1) for _ in range(n+1)]
+    dp = [[0] * (capacity+1) for _ in range(n+1)] # dp[i][c] 定义为前 i 件物品、容量为 c 时的最大价值
     for i in range(1, n+1):
         for c in range(1, capacity+1):
             if c < w[i-1]:
@@ -3593,7 +3631,7 @@ class Solution:
             return False
         # 相当于背包容量
         target = total_sum // 2
-        dp = [[False] * (target + 1) for _ in range(n + 1)]
+        dp = [[False] * (target + 1) for _ in range(n + 1)] # dp[i][j] 定义为前 i 个数能否凑出和 j
         for i in range(n + 1):
             dp[i][0] = True
         for i in range(1, n + 1):
@@ -3622,7 +3660,7 @@ class Solution:
 ```Python
 # 279. 完全平方数
 N = 10**4
-dp = [N] * (N + 1)
+dp = [N] * (N + 1) # dp[i] 定义为和为 i 时完全平方数的最少个数
 
 dp[0] = 0
 
@@ -3646,17 +3684,17 @@ class Solution:
 class Solution:
     def change(self, amount: int, coins: List[int]) -> int:
         n = len(coins)
-        dp = [[0] * (amount + 1) for _ in range(n + 1)]
+        dp = [[0] * (amount + 1) for _ in range(n + 1)] # dp[i][j] 定义为用前 i 种硬币凑出金额 j 的方案数
         for i in range(n + 1):
             dp[i][0] = 1
-        
+      
         for i in range(1, n + 1):
             for j in range(1, amount + 1):
                 if j - coins[i - 1] >= 0:
                     dp[i][j] = dp[i-1][j] + dp[i][j - coins[i-1]]
                 else:
                     dp[i][j] = dp[i-1][j]
-            
+          
         return dp[n][amount]
 ```
 
@@ -3672,7 +3710,7 @@ class Solution:
 # 300. 最长递增子序列
 class Solution:
     def lengthOfLIS(self, nums: List[int]) -> int:
-        dp = [1] * len(nums) # dp[i] 定义为以 nums[i] 结尾的最长递增子序列
+        dp = [1] * len(nums) # dp[i] 定义为以 nums[i] 结尾的最长递增子序列长度
         for i in range(len(nums)):
             for j in range(i):
                 # 若 nums[i] 可以接在 nums[j] 后面，形成更长的递增子序列
@@ -3710,7 +3748,7 @@ class Solution:
 class Solution:
     def longestCommonSubsequence(self, text1: str, text2: str) -> int:
         m, n = len(text1), len(text2)
-        dp = [0] * (n + 1)
+        dp = [0] * (n + 1) # dp[j] 定义为 text1 当前前缀与 text2 前 j 个字符的 LCS 长度
         for i in range(m):
             pre = 0
             for j in range(n):
@@ -3739,7 +3777,7 @@ class Solution:
             dp[i][0] = i
         for j in range(1, n + 1):
             dp[0][j] = j
-        
+      
         for i in range(1, m + 1):
             for j in range(1, n + 1):
                 if word1[i - 1] == word2[j - 1]:
@@ -3759,7 +3797,7 @@ class Solution:
 # 空间压缩
 class Solution:
     def minDistance(self, word1: str, word2: str) -> int:
-        dp = list(range(len(word2) + 1))
+        dp = list(range(len(word2) + 1)) # dp[j] 定义为当前 word1 前缀变成 word2 前 j 个字符的最少操作数
         for x in word1:
             pre = dp[0]
             dp[0] += 1
@@ -3797,7 +3835,7 @@ class Solution:
 # 动态规划 -- 压缩空间
 class Solution:
     def maxSubArray(self, nums: List[int]) -> int:
-        ans = dp = nums[0]
+        ans = dp = nums[0] # dp 定义为以当前位置结尾的最大子数组和
 
         for i in range(1, len(nums)):
             dp_new = max(dp + nums[i], nums[i])
@@ -3823,7 +3861,7 @@ class Solution:
             for r in range(3):
                 new[(r + x) % 3] = max(new[(r + x) % 3], dp[r] + x)
             dp = new
-        
+      
         return dp[0]
 ```
 
@@ -3837,8 +3875,8 @@ class Solution:
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
         n = len(nums)
-        dp_max = [0] * n 
-        dp_min = [0] * n 
+        dp_max = [0] * n # dp_max[i] 定义为以 nums[i] 结尾的最大乘积
+        dp_min = [0] * n # dp_min[i] 定义为以 nums[i] 结尾的最小乘积
         dp_max[0] = dp_min[0] = nums[0]
         for i in range(1, n):
             x = nums[i]
@@ -3874,7 +3912,7 @@ class Solution:
 # 空间复杂度 O(n)
 class Solution:
     def uniquePaths(self, m: int, n: int) -> int:
-        dp = [0] * (n + 1)
+        dp = [0] * (n + 1) # dp[j] 定义为到达当前行第 j 列的路径数
         dp[1] = 1
         for _ in range(m):
             for j in range(n):
@@ -3893,7 +3931,7 @@ class Solution:
 class Solution:
     def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
         m, n = len(obstacleGrid), len(obstacleGrid[0])
-        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        dp = [[0] * (n + 1) for _ in range(m + 1)] # dp[i][j] 定义为到达 (i, j) 的路径数，障碍处为 0
         dp[0][1] = 1
         for i in range(m):
             for j in range(n):
@@ -3909,7 +3947,7 @@ class Solution:
 class Solution:
     def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
         m, n = len(obstacleGrid), len(obstacleGrid[0])
-        dp = obstacleGrid[0]
+        dp = obstacleGrid[0] # dp[j] 定义为到达当前行第 j 列的路径数
         dp[0] ^= 1  # 0 变成 1，1 变成 0
         for j in range(1, n):
             dp[j] = 0 if dp[j] else dp[j - 1]
@@ -3935,13 +3973,13 @@ class Solution:
 class Solution:
     def minPathSum(self, grid: List[List[int]]) -> int:
         m, n = len(grid), len(grid[0])
-        dp = [[inf] * (n + 1) for _ in range(m + 1)]
-        for i, row in enumerate(grid):
-            for j, x in enumerate(row):
+        dp = [[inf] * (n + 1) for _ in range(m + 1)] # dp[i][j] 定义为到达 (i, j) 的最小路径和
+        for i in range(m):
+            for j in range(n):
                 if i == j == 0:
-                    dp[1][1] = x
+                    dp[1][1] = grid[i][j]
                 else:
-                    dp[i + 1][j + 1] = min(dp[i + 1][j], dp[i][j + 1]) + x 
+                    dp[i + 1][j + 1] = min(dp[i + 1][j], dp[i][j + 1]) + grid[i][j]
         return dp[m][n]
 ```
 
@@ -3951,7 +3989,7 @@ class Solution:
 class Solution:
     def minPathSum(self, grid: List[List[int]]) -> int:
         m, n = len(grid), len(grid[0])
-        dp = grid[0]  # 这里没有拷贝，dp 和 grid[0] 都持有同一段内存
+        dp = grid[0]  # dp[j] 定义为到达当前行第 j 列的最小路径和；这里没有拷贝，dp 和 grid[0] 持有同一段内存
         for j in range(1, n):
             dp[j] += dp[j - 1]
         for i in range(1, m):
@@ -3994,7 +4032,7 @@ class Solution:
 class Solution:
     def rob1(self, nums):
         n = len(nums)
-        dp = [0] * (n + 2)
+        dp = [0] * (n + 2) # dp[i] 定义为在前 i - 2 个房子中能偷到的最大金额
         for i in range(n):
             dp[i + 2] = max(dp[i] + nums[i], dp[i + 1])
         return dp[-1]
@@ -4022,7 +4060,7 @@ class Solution:
         # 答案为不持有股票时的最大值
         n = len(prices)
         dp = [[0] * 2 for _ in range(n + 1)]
-
+        # dp[i][0] 定义为前 i 天结束后不持有股票的最大利润，dp[i][1] 定义为持有股票的最大利润
         dp[0][0] = 0
         dp[0][1] = -inf
 
@@ -4074,6 +4112,7 @@ class Solution:
     def maxProfit(self, prices: List[int], fee: int) -> int:
         n = len(prices)
         dp = [[0] * 2 for _ in range(n + 1)]
+        # dp[i][0] 定义为前 i 天结束后不持有股票的最大利润，dp[i][1] 定义为持有股票的最大利润
         dp[0][0] = 0
         dp[0][1] = -inf
         for i, p in enumerate(prices):
@@ -4094,6 +4133,7 @@ class Solution:
     def maxProfit(self, prices: List[int]) -> int:
         n = len(prices)
         dp = [[0] * 2 for _ in range(n + 2)]
+        # dp[i][0] 定义为前 i - 1 天结束后不持有股票的最大利润，dp[i][1] 定义为持有股票的最大利润
         dp[1][1] = -inf
         for i, p in enumerate(prices):
             dp[i+2][0] = max(dp[i+1][0], dp[i+1][1] + p)
@@ -4240,7 +4280,7 @@ class Solution:
                     fresh += 1
                 elif grid[i][j] == 2:
                     q.append((i, j))
-        
+      
         ans = 0
         while q and fresh:
             ans += 1 # 更新时间
@@ -4321,13 +4361,13 @@ class Solution:
         i = n - 2
         while i >= 0 and nums[i] >= nums[i + 1]:
             i -= 1
-        
+      
         if i >= 0:
             j = n - 1
             while nums[j] <= nums[i]:
                 j -= 1
             nums[i], nums[j] = nums[j], nums[i]
-        
+      
         left, right = i + 1, n - 1
         while left < right:
             nums[left], nums[right] = nums[right], nums[left]
@@ -4417,39 +4457,39 @@ class MultiHeadAttention(nn.Module):
         self.num_heads = num_heads
         assert hidden_dim % self.num_heads == 0
         self.d_k = hidden_dim // self.num_heads
-      
+    
         # 定义四个线性变换
         self.W_q = nn.Linear(hidden_dim, hidden_dim)
         self.W_k = nn.Linear(hidden_dim, hidden_dim)
         self.W_v = nn.Linear(hidden_dim, hidden_dim)
         self.W_o = nn.Linear(hidden_dim, hidden_dim)
-      
+    
     def forward(self, x, mask=None):
         batch_size, seq_len, _ = x.shape
-      
+    
         # 1. 线性变换并切分为多头 (Batch, L, n_heads, d_k)
         # 2. 转置维度以便计算 (Batch, n_heads, L, d_k)
         q = self.W_q(x).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
         k = self.W_k(x).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
         v = self.W_v(x).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-      
+    
         # 3. 计算 Scaled Dot-Product Attention
         # scores 维度: (Batch, n_heads, L_q, L_k)
         # q (Batch, n_heads, L_q, d_k), k^T (Batch, n_heads, d_k, L_k)
         scores = torch.matmul(q, k.transpose(-2, -1)) / (self.d_k ** 0.5)
-      
+    
         if mask is not None:
             causal_mask = torch.tril(torch.ones(seq_len, seq_len))
             causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)
             scores = scores.masked_fill(causal_mask == 0, float('-inf'))
-          
+        
         attn = F.softmax(scores, dim=-1)
-      
+    
         # 4. 合并多头
         # (Batch, L, dim)
         context = torch.matmul(attn, v).transpose(1, 2).contiguous()
         context = context.view(batch_size, -1, self.num_heads * self.d_k)
-      
+    
         return self.W_o(context)
 ```
 
@@ -4520,7 +4560,7 @@ class GQA(nn.Module):
         assert self.num_heads % self.num_kv_heads == 0
         self.head_dim = self.hidden_dim // self.num_heads
         self.n_rep = self.num_heads // self.num_kv_heads
-        
+      
         self.Wq = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.Wk = nn.Linear(self.hidden_dim, self.num_kv_heads * self.head_dim)
         self.Wv = nn.Linear(self.hidden_dim, self.num_kv_heads * self.head_dim)
@@ -4569,7 +4609,7 @@ class LayerNorm(nn.Module):
         # LN 在最后一个维度（或指定的维度集合）做归一化
         mean = x.mean(dim=-1, keepdim=True)
         var = x.var(dim=-1, keepdim=True, unbiased=False)
-      
+    
         x_hat = (x - mean) / torch.sqrt(var + self.eps)
         return self.gamma * x_hat + self.beta
 
@@ -4608,7 +4648,7 @@ class BatchNorm2d(nn.Module):
             # BN 在 (B, H, W) 维度上算均值，保留 C 维度
             mean = x.mean(dim=(0, 2, 3), keepdim=True)
             var = x.var(dim=(0, 2, 3), keepdim=True, unbiased=False)
-          
+        
             # 更新指数移动平均
             self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean
             self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var
@@ -4633,7 +4673,7 @@ def stable_softmax(logits, dim=-1):
     # keepdim=True 保证形状可以广播
     max_logits = torch.max(logits, dim=dim, keepdim=True)[0]
     exp_logits = torch.exp(logits - max_logits)
-    
+  
     # 2. 归一化
     sum_exp_logits = torch.sum(exp_logits, dim=dim, keepdim=True)
     probs = exp_logits / sum_exp_logits
@@ -4646,18 +4686,18 @@ def cross_entropy_loss(logits, targets):
     targets: [batch] 类别索引
     """
     batch_size = logits.shape[0]
-    
+  
     # 1. 数值稳定的 LogSoftmax
     # log(softmax(x)) = x - max(x) - log(sum(exp(x - max(x))))
     max_logits = torch.max(logits, dim=1, keepdim=True)[0]
     log_sum_exp = max_logits + torch.log(torch.sum(torch.exp(logits - max_logits), dim=1, keepdim=True))
     log_probs = logits - log_sum_exp
-    
+  
     # 2. NLL Loss (Negative Log Likelihood)
     # 取出目标类别对应的 log 概率
     # targets 需要 unsqueeze 才能 gather
     target_log_probs = log_probs.gather(1, targets.unsqueeze(1)).squeeze(1)
-    
+  
     # 3. 取平均
     loss = -torch.mean(target_log_probs)
     return loss
@@ -4853,7 +4893,6 @@ def bulid_linked_list(arr, pos):
 
     return dummy.next
 ```
-
 
 ### 二叉树构造
 
