@@ -1713,7 +1713,7 @@ class Solution:
 
 #### [206. 反转链表](https://leetcode.cn/problems/reverse-linked-list/description/?envType=study-plan-v2&envId=top-100-liked)
 
-**思路**：三指针迭代，逐个把 `cur.next` 指向 pre，同时用 nxt 暂存后继防止断链。
+**思路**：头插法，创造一个新链表。三指针迭代，逐个把 `cur.next` 指向 pre，同时用 nxt 暂存后继防止断链。
 
 **复杂度**：时间 O(n)，空间 O(1)。
 
@@ -2207,22 +2207,21 @@ class Solution:
 
 **思路**：单调栈存下标（从栈底到栈顶温度递减），从左往右扫，当前温度高于栈顶温度时不断弹出并结算天数差；也可从右往左扫维护“最近更高温”的单调栈。
 
-**复杂度**：时间 O(n)，空间 O(min(n, U))。
+**复杂度**：时间 O(n)，空间 O(n)。
 
 ```Python
 # 739. 每日温度
 class Solution:
-    def dailyTemperatures(self, temperatures: List[int]) -> List[int]:
+    def dailyTemperatures(self, temperatures: list[int]) -> list[int]:
         n = len(temperatures)
-        ans = [0] * n
-        stack = []
-        # 时间复杂度 O(n), 空间复杂度 O(min(n, U))
-        for i in range(n - 1, -1, -1):
+        ans = [0] * n 
+        stack = [] # 相当于一个 todolist，寸下标
+        for i in range(n):
             t = temperatures[i]
-            while stack and t >= temperatures[stack[-1]]:
-                stack.pop()
-            if stack:
-                ans[i] = stack[-1] - i
+            while stack and t > temperatures[stack[-1]]:
+                # 当前温度高于栈顶，此时可以结算天数差
+                j = stack.pop()
+                ans[j] = i - j
             stack.append(i)
         return ans
 ```
@@ -3410,19 +3409,23 @@ class Solution:
 
 #### [45. 跳跃游戏 II](https://leetcode.cn/problems/jump-game-ii/description/?envType=study-plan-v2&envId=top-100-liked)
 
+**思路**：贪心按「当前这一跳的覆盖范围」分段。`cur` 是当前这一跳的右边界，`nxt` 是在这个范围内起跳能到达的最远下标；遍历到 `i == cur` 说明当前范围已经看完，必须再跳一次，把 `cur` 更新为 `nxt`。题目保证可达，循环到 `n - 1` 即可（终点不必再起跳）。
+
+**复杂度**：时间 O(n)，空间 O(1)。
+
 ```Python
 # 45. 跳跃游戏 II
 class Solution:
     def jump(self, nums: list[int]) -> int:
         ans = 0
-        cur = 0 
-        nxt = 0
+        cur = 0  # 当前这一跳的右边界
+        nxt = 0  # 这一跳范围内能到达的最远下标
         n = len(nums)
-        for i in range(n - 1):
-            nxt = max(nxt, i + nums[i])
-            if i == cur:
-                cur = nxt 
-                ans += 1 
+        for i in range(n - 1):  # 终点不必再起跳
+            nxt = max(nxt, i + nums[i])  # 从 i 最右可以跳到 i + nums[i]
+            if i == cur:  # 当前这一跳的范围已经看完
+                cur = nxt  # 再跳一次，右边界扩到 nxt
+                ans += 1
         return ans
 ```
 
