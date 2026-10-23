@@ -231,28 +231,89 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
 * LLM 训练时本质是在做分类任务，预测下一个 token 可以视为词表大小 C 的多分类问题。对于分类任务，模型输出一个概率分布，交叉熵更适合衡量两个概率分布的相似度。另一方面，交叉熵损失配合 softmax 的梯度更加稳定，训练高效。
 * 交叉熵损失提高正确 token 的 logit，压低所有其他 token 的 logit。即训练过程中在做正确 token 和所有其他 token 的对比，类似于对比学习中的正样本和负样本。
 
-### Q12：PPO、DPO、GRPO 的损失函数推导？
+### Q12：PPO、DPO、GRPO 的损失函数推导、相关公式？
 
 ### A12：
 
-### Q13：Thinking Model 怎么训练？
+PPO、GRPO 的目标按论文写成最大化，代码里取负再最小化。
+
+#### 1. PPO
+
+$$
+w_t=\frac{\pi_\theta(y_t\mid x,y_{<t})}{\pi_{\theta_{\mathrm{old}}}(y_t\mid x,y_{<t})},\qquad
+\mathcal{J}_{\mathrm{PPO}}=\mathbb{E}_t\big[\min\big(w_t\hat{A}_t,\mathrm{clip}(w_t,1-\varepsilon,1+\varepsilon)\hat{A}_t\big)\big].
+$$
+
+* ratio 不截断时，一次更新就能把概率推得很远。$\hat{A}_t>0$ 时 ratio 超过 $1+\varepsilon$ 就不再抬；$\hat{A}_t<0$ 时低于 $1-\varepsilon$ 就不再压。
+* RLHF 奖励 $R=r_\phi(x,y)-\beta\log(\pi_\theta/\pi_{\mathrm{ref}})$。序列 KL 是各 token 对数比之和，拆开后每步都有奖励。奖励模型只给完整回答打分，所以分数只加在最后一个 token。
+* 优势用 GAE：$\delta_t=r_t+\gamma V(s_{t+1})-V(s_t)$，$\hat{A}_t=\sum_{l\ge 0}(\gamma\lambda)^l\delta_{t+l}$。Critic 拟合的是回报，目标取 $\hat{A}_t+V_{\theta_{\mathrm{old}}}$，不跟正在更新的网络一起漂。
+
+#### 2. DPO
+
+带 KL 的 RL 最优策略可反解出 $r=\beta\log(\pi^*/\pi_{\mathrm{ref}})+\beta\log Z(x)$。Bradley-Terry 里好坏奖励相减，$Z(x)$ 消掉：
+
+$$
+\mathcal{L}_{\mathrm{DPO}}=-\mathbb{E}\left[\log\sigma\left(\beta\log\frac{\pi_\theta(y_w)}{\pi_{\mathrm{ref}}(y_w)}-\beta\log\frac{\pi_\theta(y_l)}{\pi_{\mathrm{ref}}(y_l)}\right)\right].
+$$
+
+* 更新是抬高 $y_w$、压低 $y_l$，权重 $\sigma(\hat{r}_l-\hat{r}_w)$。已经分对的样本权重接近 0。
+
+#### 3. GRPO
+
+同一 prompt 采样 $G$ 条，组内标准化后整条序列共用一个优势，不再训 Critic：
+
+$$
+\hat{A}_i=\frac{R_i-\mathrm{mean}(R)}{\mathrm{std}(R)}.
+$$
+
+损失是 PPO 的 token 级 clip，先在序列内平均，再对组平均，并减去 KL：
+
+$$
+\mathcal{J}_{\mathrm{GRPO}}=\mathbb{E}\left[\frac{1}{G}\sum_i\frac{1}{|o_i|}\sum_t\Big(\min\big(r_{i,t}\hat{A}_i,\mathrm{clip}(r_{i,t},1-\varepsilon,1+\varepsilon)\hat{A}_i\big)-\beta D_{\mathrm{KL}}\Big)\right].
+$$
+
+* $r_{i,t}=\pi_\theta/\pi_{\theta_{\mathrm{old}}}$。直接用 $\log(\pi_\theta/\pi_{\mathrm{ref}})$ 可能为负、方差大，所以 KL 用恒非负的 $\pi_{\mathrm{ref}}/\pi_\theta-\log(\pi_{\mathrm{ref}}/\pi_\theta)-1$。长 CoT 常去掉这项，策略要明显离开参考模型，推理才写得长。
+* 一组奖励全相同，均值就是每条自己的奖励，优势为 0，没有梯度。
+
+### Q13：GSPO、DAPO 的改进？
 
 ### A13：
+
+两者都保留组内相对优势。GSPO 改 ratio 的粒度，DAPO 改 clip、采样和 token 怎么平均。
+
+* **GSPO**：GRPO 奖励在序列上，ratio 和 clip 在 token 上。token 只采样一次，ratio 方差大，长回答和 MoE 路由变化都会把它打飞。GSPO 改成序列似然的长度归一化几何平均，整条回答一起 clip：
+
+$$
+s_i=\exp\left(\frac{1}{|y_i|}\sum_t\log\frac{\pi_\theta(y_{i,t}\mid\cdot)}{\pi_{\theta_{\mathrm{old}}}(y_{i,t}\mid\cdot)}\right).
+$$
+
+  $s_i$ 是几何平均，离 1 很近，clip 区间比 token 级小很多。超出区间时整条回答退出梯度，不是单个 token。MoE 上一次更新后专家路由会变，token ratio 跟着跳。GRPO 要做 Routing Replay，把旧路由缓存下来，算 ratio 时在新策略里重放。序列似然对单个 token 的路由变化不敏感，可以不做这一步。
+
+* **DAPO**：仍是 token ratio。长推理要离开初始模型，参考模型 KL 会把更新拉回去，所以去掉。奖励是可验证的 $+1/-1$。
+  * **Clip-Higher**：上下界分开，上界比下界松。优势为正时，新概率最多到旧概率的 $1+\varepsilon$。高概率 token 还能继续抬，低概率 token 的绝对增幅很小，探索被卡住，熵掉得快。下界不放大，否则负优势 token 的概率可以降到接近 0。
+  * **Dynamic Sampling**：一组全对或全错时，组内均值就是每条的奖励，标准化后优势为 0，这组占着 batch 却没有梯度。训练往后走，全对的 prompt 越来越多，有效样本变少，梯度方差变大。做法是过采样，丢掉准确率为 0 和 1 的组，直到 batch 被有对有错的 prompt 填满。每步要采多少条不固定，所以叫 dynamic。
+  * **Token-level loss**：GRPO 先在每条序列里对 token 平均，再对序列平均。短回答和长回答总权重相同，长回答里每个 token 的梯度被长度除小。长推理里有用的 token 学不动，重复和乱码也罚得轻。DAPO 分母改成 $\sum_i|o_i|$，batch 内每个 token 等权。
+  * **Overlong Reward Shaping**：生成碰到上限就被截断。截断样本直接判负，一条还没写完、本来可能做对的推理会变成错误奖励。软惩罚加在原来的对错分数上：上限前留一段缓冲，长度进入这段后越长扣得越多。
+
+
+### Q14：Thinking Model 怎么训练？
+
+### A14：
 
 * 用思维链（Chain-of-Thought）数据做监督微调
 * 使用强化学习进一步优化
 
-### Q14：强化学习中 KL 散度的作用？
+### Q15：强化学习中 KL 散度的作用？
 
-### A14:
+### A15:
 
 * 防止模型崩坏，不让模型偏离语言分布太远，避免 reward hacking。
 * 稳定训练，KL 项相当于添加了一个正则约束，限制每一步更新的幅度，使训练更加平滑。
 * 保留模型通识能力。
 
-### Q15：采样温度的作用？采样策略？
+### Q16：采样温度的作用？采样策略？
 
-### A15：
+### A16：
 
 * 采样温度：作用于 softmax 之前，采样温度通过对 logits 进行缩放来控制概率分布的平滑程度，温度越高，分布越平坦、随机性越强；温度越低，分布越尖锐。
 * 采样策略：
@@ -261,9 +322,9 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
   * Top-k：只从概率最高的 k 个 token 采样，固定数量裁剪，采样空间固定，生成过程稳定可控；
   * Top-p：选最小 token 集合，使概率和 ≥ p，动态裁剪，自适应分布，生成更自然。
 
-### Q16：DeepSpeed 的原理？
+### Q17：DeepSpeed 的原理？
 
-### A16：
+### A17：
 
 * ZeRO
   * Stage 1：优化器分片
@@ -272,13 +333,13 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
 * Offload：将数据、梯度、优化器状态等下沉到CPU内存或硬盘上
 * Gradient Checkpoint：在反向传播时重新计算深度神经网络的中间值（而通常情况是在前向传播时存储的），用时间换空间
 
-### Q17：Flash Attention 的原理？
-
-### A17：
-
-### Q18：1 B 模型训练和推理分别占用多少显存？
+### Q18：Flash Attention 的原理？
 
 ### A18：
+
+### Q19：1 B 模型训练和推理分别占用多少显存？
+
+### A19：
 
 * 训练（全参）：
   * FP32:
@@ -300,18 +361,18 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
     * 权重：$1\times 2 = 2$ G
     * kV cache：$KV cache ≈ 2 × layers × seq\_len × hidden_dim × 2 bytes$ G
 
-### Q19：大模型训练的并行策略？
+### Q20：大模型训练的并行策略？
 
-### A19：
+### A20：
 
 * 数据并行（DP）：切分数据
 * 模型并行
   * 张量并行（TP）：把一层里的矩阵切开，分给多卡计算
   * 流水线并行（PP）：不同 GPU 放不同层
 
-### Q20：RAG（检索增强生成）的流程？
+### Q21：RAG（检索增强生成）的流程？
 
-### A20：
+### A21：
 
 * 文档处理 -- 离线
   * 文档收集（PDF / 网页 / 数据库）
@@ -325,9 +386,9 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
   * 相似度搜索（余弦相似度 / 内积）
   * Top-k 召回
 
-### Q21：Qwen3.5 有哪些改进？
+### Q22：Qwen3.5 有哪些改进？
 
-### A21：
+### A22：
 
 * 原生多模态：通过早期文本-视觉融合与扩展的视觉/STEM/视频数据实现原生多模态。
 * 门控注意力：在标准的注意力输出之后，加了一个数据依赖的 Sigmoid 门控（Gate）。
@@ -338,9 +399,9 @@ MoE（混合专家）架构将 FFN 层拆分成 $N$ 个独立的小 FFN 网络�
   * 构建了可扩展的异步强化学习框架，支持 Qwen3.5 全尺寸模型，并全面覆盖文本、多模态及多轮交互场景。框架面向原生智能体工作流设计，能够实现稳定、无缝的多轮环境交互；
   * 对各类 RL 任务和环境的全面扩展。模型效果随 RL Environment scaling 带来增益。
 
-### Q22：On Policy Distillation 的原理？
+### Q23：On Policy Distillation 的原理？
 
-### A22：
+### A23：
 
 学生自己采样轨迹，教师对这条轨迹上的每个 token 打分。轨迹是 on-policy 的，监督是逐 token 稠密的。
 
@@ -370,13 +431,13 @@ $$
 * **RL（PPO / GRPO）**：on-policy + 稀疏。奖励多在序列结束才给一次，大约 $O(1)$ bits / episode，不知道错在哪一步。
 * **OPD**：on-policy + 稠密。学生自己采样，教师对每个 token 给反馈，大约 $O(N)$ bits / episode。工程上常直接改现有 RL 训练器：把 KL 正则的 reference 换成教师，`advantage = teacher_logprob - student_logprob`。
 
-### Q23：DeepSeek V4 的改进？
-
-### A23：
-
-### Q24：Kimi K3 的改进？
+### Q24：DeepSeek V4 的改进？
 
 ### A24：
+
+### Q25：Kimi K3 的改进？
+
+### A25：
 
 ---
 
@@ -418,9 +479,24 @@ Function Calling 是执行工具，MCP 是工具接入协议，Skills 是任务�
   * RAG（检索增强）；
   * 先检索再生成、工具调用。
 
-### Q5：Agent 的记忆系统？
+### Q5：RAG？
 
 ### A5：
+
+RAG（Retrieval-Augmented Generation，检索增强生成）：根据用户问题检索外部知识，将相关内容放进上下文，再由 LLM 生成回答。用于补充模型缺少的领域知识、私有数据和最新信息。
+
+* 离线建库：文档收集 → 清洗解析 → Chunk 切分 → Embedding 向量化 → 建立检索索引，同时保存原文、来源等元数据。
+* 在线问答：用户问题 → Query 改写 / 向量化 → Top-k 召回 → Rerank 重排序 → 将筛选后的片段与问题拼入 Prompt → LLM 生成答案并引用来源。改写和重排序是可选的优化环节。
+* 优化关注点：
+  * Chunk 切分：尽量保留完整语义；过小容易丢失上下文，过大容易引入无关内容，可按段落 / 标题切分并设置适当重叠。
+  * 混合检索：关键词检索（如 BM25）匹配术语、编号，向量检索匹配语义，两路召回合并后再排序。
+  * 上下文筛选：去重、过滤低相关片段、控制 Top-k 和 token 预算，避免检索结果占满窗口。见 [RAG 检索与内容处理](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview)。
+* Agentic RAG：把检索封装成工具，由 Agent 决定何时检索、查询什么、是否继续检索；可拆解问题、改写查询并多轮补充证据。相比固定的“检索 → 生成”流程更灵活，但延迟与调用成本更难控制。见 [RAG 架构与 Agentic RAG](https://docs.langchain.com/oss/python/deepagents/retrieval#rag-architectures)。
+* 评估与局限：检索侧看相关证据是否召回、排序是否靠前；生成侧看答案是否正确、是否有证据支持。RAG 能缓解幻觉，但检索遗漏、资料错误或模型误读仍会导致错误回答；证据不足时应补充检索或明确说明无法确定。
+
+### Q6：Agent 的记忆系统？
+
+### A6：
 
 Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会话保留信息”的问题，通常按时效与用途分层。
 
@@ -430,9 +506,9 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
 * 程序记忆（Procedural Memory）：沉淀为可复用的 Skills / Prompt / 工作流，让 Agent 学会“怎么做”，而不只是“知道什么”。
 * 读写机制：写入（提炼、摘要、结构化落库）、检索（相似度 / 关键词 / 时间衰减）、更新（冲突覆盖、版本化）、遗忘（TTL、重要性打分、压缩）。核心原则是：热数据进上下文，冷数据进外部存储，按需召回。
 
-### Q6：Agent 的上下文管理？
+### Q7：Agent 的上下文管理？
 
-### A6：
+### A7：
 
 上下文管理的目标是在有限窗口内最大化任务相关信息的信噪比，避免上下文爆炸和注意力稀释。
 
@@ -443,9 +519,9 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
 * 工具结果治理：对长输出做截断、摘要或落盘后只回传路径/关键字段，防止单次工具返回占满上下文。
 * 与记忆系统的关系：上下文管理是“当前窗口怎么排版”，记忆系统是“窗口外信息怎么存取”；好的 Agent 是两者协同——先检索/回忆，再精排进窗口。
 
-### Q7：Agent 自进化？
+### Q8：Agent 自进化？
 
-### A7：
+### A8：
 
 自进化指 Agent 在部署后能根据反馈持续改进策略、记忆与能力，而不只依赖一次性离线训练。
 
@@ -456,9 +532,9 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
 * 能力扩展：自动发现/注册新工具，合成新 Skill，扩展 MCP 接入面。
 * 边界：自进化需要可验证反馈（单元测试、规则校验、人类确认），否则容易 reward hacking 或把错误经验固化进记忆。
 
-### Q8：多 Agent 的编排？
+### Q9：多 Agent 的编排？
 
-### A8：
+### A9：
 
 多 Agent 编排解决单 Agent 能力边界问题：把复杂任务拆给角色不同的 Agent，由编排层负责分工、通信与收敛。
 
@@ -471,9 +547,9 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
 * 编排关注点：任务分解粒度、角色与权限隔离、冲突消解（谁最终拍板）、终止条件（最大轮数 / 达成共识 / 验收通过）、可观测性（轨迹与成本追踪）。
 * 与单 Agent 的取舍：多 Agent 提升分工与并行，但增加延迟、token 成本和协调失败风险；简单任务优先单 Agent + Skills，复杂长链路再上多 Agent。
 
-### Q9：Agent 的工作模式（ReAct 等）？
+### Q10：Agent 的工作模式（ReAct 等）？
 
-### A9：
+### A10：
 
 根据主流的 Agent 框架及 Coding Agent，Agent 的工作模式主要可以分为以下：
 
@@ -489,17 +565,15 @@ Agent 的记忆系统解决“上下文窗口有限、多轮任务需要跨会�
   * LangGraph 的实现思路：用 State 保存问题、检索结果等任务状态，Node 读取状态并返回更新，Edge 决定下一步执行哪个节点，也可以通过条件边按状态分流。并行分支更新同一状态字段时，需要定义 Reducer 合并规则，例如把两路检索结果追加到同一个列表。见 [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)。
   * DAG 与 LangGraph 的区别：LangGraph 支持有环图，可以表达“模型 → 工具 → 模型”的 ReAct 循环，也可以在校验失败后返回修改节点。严格的 DAG 不包含这种回边；它只是 LangGraph 能实现的一类流程。有环流程需要明确退出条件，并设置步数上限。见 [LangGraph 工作流与 Agent](https://docs.langchain.com/oss/python/langgraph/workflows-agents)。
 
-### Q10：Loop Engineering？
-
-### A10：
-
-
-### Q11：Graph Engineerung？
+### Q11：Loop Engineering？
 
 ### A11：
 
----
+### Q12：Graph Engineerung？
 
+### A12：
+
+---
 
 ## Transformer 八股
 
