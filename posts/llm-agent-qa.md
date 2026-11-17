@@ -443,43 +443,126 @@ $$
 
 ### A1：
 
-文本先经过分词，变成 token ID。模型推理主要分为两个阶段：
+分为 Prefill（预填充） 和 Decode（解码） 两个阶段，核心优化手段是 KV Cache。
 
-* **Prefill**：并行处理提示词，计算并保存各层的 KV Cache，再根据输出生成第一个 token。
-* **Decode**：每次处理一个新 token，读取之前的 KV Cache，生成下一个 token，并把新 token 的 K、V 加入缓存。重复直到遇到结束标记或达到长度上限。
-
-KV Cache 保存历史 token 的 K、V，避免每一步重复计算。代价是缓存会随着上下文变长而占用更多显存。
-
-Prefill 并行处理多个 token，通常更偏计算密集；Decode 逐 token 生成，在小 batch 下通常更受显存带宽限制。长上下文下，读取 KV Cache 的开销也会增大。
+* Prefill：并行处理 Prompt 中尚未缓存的 Token，计算并缓存各层 K、V，输出第一个 Token；通常偏计算密集（Compute-bound），是首字延迟（TTFT）的主要组成部分，TTFT 还包含排队等开销。
+* Decode：逐个自回归生成新 Token，每次只需算当前 Token 的 QKV，读取历史 KV Cache 做 Attention 并追加缓存；小 Batch 下偏显存带宽密集（Memory-bound），决定生成速度（TPOT）。
+* 核心矛盾：KV Cache 用显存换计算，上下文越长，显存占用和访存开销越大。
 
 ### Q2：什么是 PD 分离？
 
 ### A2：
 
-PD 分离把同一次请求的 Prefill 和 Decode 分到两组 GPU 上。Prefill 机器处理完 prompt，写出各层 KV Cache 和第一个 token，再把 KV Cache 传到 Decode 机器，由 Decode 机器继续逐 token 生成。
+将同一次请求的 Prefill 和 Decode 拆分到两组独立的 GPU 实例上执行，中间通过高速网络传输 KV Cache。
 
-* **原因**：Prefill 一次算整段 prompt，偏计算密集，指标是 TTFT。Decode 每步只算一个新 token，但要读出全部 KV Cache，小 batch 下偏显存带宽，指标是 TPOT。放在同一张卡上时，长 prompt 的 prefill 会把正在生成的请求卡住。两边合适的 batch、张量并行度和机器数量也不一样。
-* **做法**：按流量配机器。输入长、输出短，多加 Prefill。输出长，多加 Decode。Prefill 常用更大的张量并行，Decode 常用更小的张量并行。传输的主体是 KV Cache，BF16 下大约为 $2 \times L \times S \times n_{kv} \times d_h \times 2$ bytes。上下文很长或带宽不够时，传输时间会盖过收益。短 prompt 往往继续放在一起跑。
-* **和 chunked prefill**：chunked prefill 仍在同一组 GPU 上，把长 prefill 切成小块，和 decode 插进同一次迭代，KV Cache 不出机器。PD 分离把两个阶段的机器分开。
-* **代表系统**：DistServe、Splitwise、Mooncake。vLLM 和 SGLang 也支持。两组机器内部仍然各自做 continuous batching。
+* 解决痛点：混部时，长 Prompt 的 Prefill 可能阻塞正在 Decode 的请求，导致 Token 间隔（ITL）抖动；两阶段对并行策略及算力、带宽的需求也有差异，分离后可独立配置资源。
+* 实现方式：Prefill 节点算完首字后，将各层 KV Cache 传输给 Decode 节点继续生成；可根据业务输入/输出长度比例动态配比两类节点数量。
+* 对比与代价：相比同卡混批的 Chunked Prefill，PD 分离隔离更彻底，但增加了 KV Cache 的跨机传输开销（短 Prompt 或带宽受限时收益有限）；代表系统有 DistServe、Mooncake。
 
-### Q3：Flash Attention 的原理？
+### Q3：FlashAttention 的原理？
 
 ### A3：
 
-FlashAttention 是一种精确注意力的优化算法，主要通过减少 GPU 显存和片上 SRAM 之间的数据搬运来加速。
+一种 IO 感知的精确注意力算法，通过减少 HBM（显存）与 SRAM（片上缓存）之间的数据搬运来加速，计算结果与标准 Attention 数学等价。
 
-* **分块计算**：把 $Q$、$K$、$V$ 分块放进 SRAM，逐块计算注意力，避免在显存中存下完整的 $N\times N$ 注意力矩阵。
-* **在线 softmax**：逐块更新行最大值、归一化分母和输出，让分块计算得到与标准注意力数学上相同的结果。浮点运算顺序不同，结果可能有细微差异。
-* **反向重算**：反向传播时重算需要的注意力块，减少中间结果的存储。
+* Tiling（分块）：将 Q、K、V 切块加载到高速 SRAM 中完成计算，避免在 HBM 中读写完整的 $N \times N$ 注意力矩阵。
+* Online Softmax：在遍历分块时动态维护局部最大值和归一化分母，无需等待整行算完即可在线更新输出。
+* 反向重算：反向传播时不保存前向的巨大注意力矩阵，而是利用保存的统计量在片上重算，大幅降低显存占用（计算复杂度仍为 $O(N^2d)$）。
 
-它降低了显存占用和数据搬运量，但标准注意力的计算复杂度仍是 $O(N^2d)$。
-
-FlashAttention 2 改善了并行划分和计算效率；FlashAttention 3 针对 Hopper GPU，让矩阵乘和 softmax 等操作更好地重叠，并支持 FP8 计算。
-
-### Q4：投机解码？
+### Q4：投机解码（Speculative Decoding）的原理？
 
 ### A4：
+
+用低成本的 Draft 模型先猜 $\gamma$ 个 Token，再用 Target 模型一次前向并行验证。在采用正确的接受与重采样规则时，可保持 Target 的采样分布不变；实际加速取决于接受率及 Draft、验证的成本。
+
+* 核心动机：小 Batch Decode 通常受显存带宽限制，算力未充分利用。并行验证多个 Token 可复用权重读取、摊薄单 Token 开销，但验证计算和 KV 访存仍有成本。
+* 执行流程：Draft 自回归生成 $\gamma$ 个候选 Token $\rightarrow$ 拼在 Prefix 后送入 Target 一次 Forward 算出所有位置分布 $\rightarrow$ 逐位校验接受或拒绝。
+* 无损保证（拒绝采样）：设 $p$、$q$ 分别为同一已接受前缀下 Target、Draft 的采样分布，对 Draft 提出的 $x$，以 $\min(1, p(x)/q(x))$ 的概率接受；一旦拒绝，从归一化的 $\max(0, p-q)$ 中重采一个 Token 并截断后续。全接受时，可从 Target 的下一位置分布再采样 1 个 Token。无损指分布一致，不保证相同随机种子下生成相同文本。
+* 常见变体：独立小模型、Medusa（多解码头）、EAGLE（特征层自回归）、树状验证（Tree Verification）。
+
+### Q5：AWQ 和 SmoothQuant 的原理与区别？
+
+### A5：
+
+两者都是无需反向传播、需要校准数据的 PTQ（训练后量化）方法，都使用通道级等价缩放，但优化目标不同。设线性层 $Y = XW$，$S = \operatorname{diag}(s)$，则量化前有 $Y = (XS^{-1})(SW)$，即输入按通道缩小、对应权重按通道放大，保持输出不变。
+
+* SmoothQuant（典型配置 W8A8）：激活中的离群通道难量化，而权重相对容易量化。根据校准集的激活与权重幅值确定缩放因子，将部分量化难度从激活迁移给权重，平衡两者的动态范围，使权重和激活都能进行 INT8 量化。
+* AWQ（典型配置 W4A16）：只量化权重，激活保留 16 位浮点。其出发点是，保护约 $1\%$ 的显著权重就能明显改善量化精度。由于相同的权重误差会被较大的输入激活放大，AWQ 根据各输入通道的平均激活幅值构造缩放因子，并在校准集上搜索，使量化后的层输出误差尽量小。计算形式为 $\widehat Y = (XS^{-1})Q(SW)$，通过权重缩放和输入反向缩放保护重要通道。
+* 核心区别：SmoothQuant 重点解决激活难量化的问题，实现权重与激活联合量化；AWQ 重点降低低比特权重量化造成的输出误差，激活统计用于指导权重量化。
+* 工程实现：通道缩放通常可融合进前置算子或权重，避免独立缩放操作的额外开销。实际加速仍取决于硬件与量化内核，W4A16 还涉及低比特权重的解包和反量化。
+
+### Q6：PagedAttention 的原理？
+
+### A6：
+
+借鉴操作系统的虚拟内存分页机制，将逻辑 KV Cache 切分为固定大小的 Block，映射到不要求连续的物理显存块，减少预留浪费和显存碎片。
+
+* 解决痛点：按最大序列长度预分配连续 KV 空间时，容易出现过度预留和内部碎片；不同请求的连续显存分配与释放也可能产生外部碎片，限制并发规模。
+* 核心机制：以固定 Token 数（如 16）为一个物理 Block，每条序列维护一张 Block Table 记录逻辑块到物理块的映射，生成时按需动态申请。
+* 核心收益：
+  * 对普通等长块的 KV 分配，每条序列仅最后一个 Block 可能未填满，内部碎片不足一个 Block，有助于提升并发和吞吐；
+  * 原生支持 Copy-on-Write 与前缀共享（如多轮对话、System Prompt 复用物理块）；
+  * 分页管理负责 KV 的物理存储，前缀缓存负责识别可复用内容，两者可以结合。
+
+### Q7：Continuous Batching 的原理？
+
+### A7：
+
+将调度粒度从 Request 级细化到 Iteration 级（每次 Forward 前动态重组 Batch），完成的请求退出，新请求在资源和调度预算允许时加入。
+
+* 解决痛点：Static Batching 在整批完成前通常不接纳新请求，短请求结束后留下的计算容量难以及时利用，还可能存在 Padding 浪费。
+* 工作方式：每轮迭代后，调度器移除达到 EOS、长度上限等结束条件的请求，释放其资源引用，再按 Token 预算和 KV 容量接纳新请求；可复用的前缀 KV 块可保留在缓存中。
+* 协同关系：Continuous Batching 决定“每轮跑哪些请求”，PagedAttention 决定“KV 存在哪里”，两者是现代推理引擎（vLLM/SGLang）提升吞吐的基础搭档。
+
+### Q8：KV Cache 压缩有哪些方法？
+
+### A8：
+
+可通过架构设计、量化和驱逐减少 KV 存储，也可通过复用与卸载缓解 GPU 显存压力：
+
+1. 架构改写（源头减少）：MQA / GQA（多头共享 KV）、MLA（DeepSeek，将 KV 投影到低维 Latent 空间缓存）。
+2. KV 量化（存得更小）：将 KV 量化至 FP8 / INT8 / INT4（如 KIVI 针对 K 做 per-channel 量化、针对 V 做 per-token 量化以应对离群值分布差异）。
+3. 稀疏驱逐（按需少留，有损）：仅保留重要 Token 的 KV，如 StreamingLLM（保留开头 Attention Sink + 滑动窗口）、H2O（按累计注意力分数淘汰低贡献 Token）。
+4. 复用与卸载：Prefix Caching 共享相同前缀的 KV，减少重复存储和计算；Offload 将暂不使用的 KV 移到 CPU 等存储层，减少 GPU 驻留占用，但增加传输开销。这两类方法不等于压缩单份 KV。
+
+### Q9：Chunked Prefill 的原理？
+
+### A9：
+
+将长 Prompt 的 Prefill 阶段按调度 Token 预算分块处理，可分多轮与 Decode 请求混批（Hybrid Batch）执行。
+
+* 解决痛点：长 Prompt 一次性做 Prefill 可能长时间占用 GPU，阻塞同卡的 Decode 请求，造成 Token 间隔（ITL）尖峰。
+* 执行方式：以 vLLM 的常规 Decode 优先策略为例，在单轮 Token 预算和 KV 容量允许时先安排 Decode（通常每个请求 1 Token），再用剩余预算安排 Prefill Chunk。
+* 核心权衡：较小的 Chunk 通常更有利于 ITL，并降低单次 Prefill 的峰值激活显存，但会增加 Prefill 轮数，可能拉长 TTFT；较大的 Chunk 有利于 Prefill 效率，但可能加重对 Decode 的干扰。需要结合负载调节，不能完全消除延迟抖动。
+
+### Q10：Infra 常用指标有哪些？
+
+### A10：
+
+面试回答时建议按延迟、吞吐、硬件效率三个维度组织，并点出核心关系：
+
+* 延迟指标（用户体验）：
+  * TTFT（首字延迟）：从请求到达至输出第一个 Token 的时间，主要受排队和 Prefill 算力影响。
+  * TPOT（平均每 Token 生成延迟）：单请求首 Token 之后的生成耗时除以剩余输出 Token 数，衡量平均生成速度。
+  * ITL（Token 间隔）：流式输出中相邻 Token 的时间间隔，关注其分布及 P95/P99 长尾，可发现平均 TPOT 掩盖的卡顿；实际测量需注意流式响应是否合并多个 Token。
+  * E2E Latency：总耗时 $\approx \text{TTFT} + \text{TPOT} \times (N_{\text{out}} - 1)$。
+* 吞吐指标（系统能力）：
+  * Tokens/s：系统每秒生成的总 Token 数；QPS：每秒完成请求数；Goodput：满足特定 SLO 延迟约束下的有效吞吐。
+* 效率指标（硬件瓶颈）：
+  * MFU（算力利用率）：Prefill 和训练场景核心指标（Compute-bound）。
+  * MBU（显存带宽利用率）：小 Batch Decode 场景核心指标（Memory-bound）。
+  * KV Cache 命中率 / 抢占率：衡量前缀复用效率与显存压力。
+
+### Q11：Prefix Caching 的原理与收益？
+
+### A11：
+
+缓存已计算前缀的 KV，新请求命中相同前缀时直接复用，只计算尚未缓存的部分，适用于共享 System Prompt、重复长文档问答和多轮对话。
+
+* 核心机制：以 vLLM 为例，用“前序块哈希 + 当前块 Token + LoRA 等相关标识”生成缓存键，匹配可复用的完整 KV Block，通过引用计数共享；空闲缓存块按 LRU 策略淘汰。
+* 命中条件：模型及相关配置一致，且从开头到复用位置的 Token 序列完全相同。因果注意力下，后续位置的 KV 依赖前文，因此仅中间某段文本相同不能直接复用。
+* 核心收益：跳过命中部分的 Prefill 计算，降低 TTFT、提高吞吐；并发请求共享前缀时，还可减少重复 KV 存储。Decode 仍需读取历史 KV，不直接减少每个新 Token 的解码计算。
+* 使用取舍：将稳定的公共内容放在前面、变化内容放在后面，有利于命中。保留缓存会占用可回收的 KV 空间，收益取决于公共前缀长度、命中率和缓存容量。
 
 ---
 
