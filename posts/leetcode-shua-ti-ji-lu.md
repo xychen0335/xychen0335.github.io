@@ -3622,7 +3622,7 @@ def zero_one_knapsack(capacity: int, w: List[int], v: List[int]) -> int:
 
 **思路**：转化为 0-1 背包可行性问题——总和为奇数直接返回 False，否则判断能否选出和为 total / 2 的子集：`dp[i][j] = dp[i-1][j] or dp[i-1][j - nums[i-1]]`，可压缩为一维逆序更新。
 
-**复杂度**：时间 O(n · target)，空间 O(target)。
+**复杂度**：时间 O(n · target)，空间 O(n · target)（压缩后 O(target)）。
 
 ```Python
 # 416. 分割等和子集
@@ -3644,6 +3644,24 @@ class Solution:
                 else:
                     dp[i][j] = dp[i-1][j] or dp[i-1][j-nums[i-1]]
         return dp[n][target]
+```
+
+```Python
+# 416. 分割等和子集
+# 空间压缩
+class Solution:
+    def canPartition(self, nums: List[int]) -> bool:
+        total_sum = sum(nums)
+        if total_sum % 2 != 0:
+            return False
+        target = total_sum // 2
+        dp = [False] * (target + 1) # dp[j] 定义为能否凑出和 j
+        dp[0] = True
+        for num in nums:
+            # 逆序：j - num 还是上一轮的值，当前数只用一次
+            for j in range(target, num - 1, -1):
+                dp[j] = dp[j] or dp[j - num]
+        return dp[target]
 ```
 
 ### 完全背包问题
@@ -3680,7 +3698,7 @@ class Solution:
 
 **思路**：完全背包求方案数，`dp[i][j] = dp[i-1][j] + dp[i][j - coins[i-1]]`（同一硬币可再用，所以第二维仍是 i），可压缩为一维正序更新；注意内外层循环顺序决定“组合”还是“排列”。
 
-**复杂度**：时间 O(n · amount)，空间 O(amount)。
+**复杂度**：时间 O(n · amount)，空间 O(n · amount)（压缩后 O(amount)）。
 
 ```Python
 # 518. 零钱兑换 II
@@ -3699,6 +3717,20 @@ class Solution:
                     dp[i][j] = dp[i-1][j]
           
         return dp[n][amount]
+```
+
+```Python
+# 518. 零钱兑换 II
+# 空间压缩
+class Solution:
+    def change(self, amount: int, coins: List[int]) -> int:
+        dp = [0] * (amount + 1) # dp[j] 定义为凑出金额 j 的方案数
+        dp[0] = 1
+        for coin in coins: # 外层硬币、内层金额，数的是组合
+            # 正序：j - coin 已经加上当前硬币，同一枚可以重复用
+            for j in range(coin, amount + 1):
+                dp[j] += dp[j - coin]
+        return dp[amount]
 ```
 
 ### 线性 DP 子数组 & 子序列问题
@@ -4023,6 +4055,22 @@ class Solution:
         return dp[-1]
 ```
 
+```Python
+# 198. 打家劫舍
+# 压缩空间
+class Solution:
+    def rob(self, nums: List[int]) -> int:
+        n = len(nums)
+        # dp1、dp2 分别对应递推里的 dp[i]、dp[i + 1]，初值就是多开的那两位 0
+        dp1 = dp2 = 0
+        for i in range(n):
+            # 选第 i 间：dp1 + nums[i]；不选：dp2。结果即新的 dp[i + 2]
+            dp = max(dp1 + nums[i], dp2)
+            dp1 = dp2  # 窗口前移，原来的 dp[i + 1] 变成下一轮的 dp[i]
+            dp2 = dp   # 刚算出的 dp[i + 2] 变成下一轮的 dp[i + 1]
+        return dp
+```
+
 #### [213. 打家劫舍 II](https://leetcode.cn/problems/house-robber-ii/description/)
 
 **思路**：环形房屋的额外约束只是“第一间和最后一间不能同时偷”，于是拆成两个线性问题：偷第一间（最后一间不能偷）、不偷第一间（其余自由），取二者最大值并复用 198. 的解法。
@@ -4072,15 +4120,19 @@ class Solution:
             dp[i+1][1] = max(dp[i][1], -prices[i])
 
         return dp[n][0]
-        '''
-        # 空间优化后与贪心写法一致
-        hold = -prices[0]
-        no_hold = 0
-        for price in prices:
-            no_hold = max(no_hold, hold + price) # 抛出时收益最大
-            hold = max(hold, -price) # 买入时花最少的钱
+```
+
+```Python
+# 121. 买卖股票的最佳时机
+# 空间压缩
+class Solution:
+    def maxProfit(self, prices: List[int]) -> int:
+        hold, no_hold = -inf, 0 # hold 持有，no_hold 不持有
+        for p in prices:
+            new_no_hold = max(no_hold, hold + p) # 不卖或卖掉
+            new_hold = max(hold, -p) # 只买一次，买入价直接取负
+            no_hold, hold = new_no_hold, new_hold
         return no_hold
-        '''
 ```
 
 #### [122. 买卖股票的最佳时机 II](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-ii/description/)
@@ -4101,6 +4153,19 @@ class Solution:
             dp[i+1][0] = max(dp[i][0], dp[i][1] + p) # 什么都不做或卖掉股票
             dp[i+1][1] = max(dp[i][1], dp[i][0] - p) # 什么都不做或买入股票
         return dp[n][0]
+```
+
+```Python
+# 122. 买卖股票的最佳时机 II
+# 空间压缩
+class Solution:
+    def maxProfit(self, prices: List[int]) -> int:
+        hold, no_hold = -inf, 0 # hold 持有，no_hold 不持有
+        for p in prices:
+            new_no_hold = max(no_hold, hold + p) # 不卖或卖掉
+            new_hold = max(hold, no_hold - p) # 用昨天的利润再次买入
+            no_hold, hold = new_no_hold, new_hold
+        return no_hold
 ```
 
 #### [714. 买卖股票的最佳时机含手续费](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/description/)
@@ -4124,6 +4189,19 @@ class Solution:
         return dp[n][0]
 ```
 
+```Python
+# 714. 买卖股票的最佳时机含手续费
+# 空间压缩
+class Solution:
+    def maxProfit(self, prices: List[int], fee: int) -> int:
+        hold, no_hold = -inf, 0 # hold 持有，no_hold 不持有
+        for p in prices:
+            new_no_hold = max(no_hold, hold + p - fee) # 卖出时扣手续费
+            new_hold = max(hold, no_hold - p)
+            no_hold, hold = new_no_hold, new_hold
+        return no_hold
+```
+
 #### [309. 买卖股票的最佳时机含冷冻期](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown/description/)
 
 **思路**：状态机上多留一天表示冷冻期，买入只能从“两天前已卖出”的状态转移，因此用多开一位的 dp 数组（`dp[i][0] - p` 改为 `dp[i-1][0] - p`）实现。
@@ -4142,6 +4220,21 @@ class Solution:
             dp[i+2][0] = max(dp[i+1][0], dp[i+1][1] + p)
             dp[i+2][1] = max(dp[i+1][1], dp[i][0] - p) # 冷冻期
         return dp[-1][0]
+```
+
+```Python
+# 309. 买卖股票的最佳时机含冷冻期
+# 空间压缩
+class Solution:
+    def maxProfit(self, prices: List[int]) -> int:
+        pre_no_hold = 0 # 前天不持有，买入只能从这里来
+        hold, no_hold = -inf, 0
+        for p in prices:
+            new_no_hold = max(no_hold, hold + p)
+            new_hold = max(hold, pre_no_hold - p) # 不能用昨天刚卖出的利润买
+            pre_no_hold = no_hold
+            no_hold, hold = new_no_hold, new_hold
+        return no_hold
 ```
 
 ### 区间 DP
@@ -4847,6 +4940,39 @@ def dpo_loss(pi_logps_w, pi_logps_l, ref_logps_w, ref_logps_l, beta=0.1):
     # 损失 = -log(sigmoid(diff))
     loss = -F.logsigmoid(diff).mean()
     return loss
+```
+
+#### 8. ReAct 智能体
+
+**思路**：调用模型判断下一步 → 执行工具 → 把结果写回上下文 → 再次调用模型，直到模型给出最终回答。对应 Reason → Act → Observe → Reason。
+
+约定 `model` 返回 `{"tool": "工具名", "args": {...}}` 或 `{"answer": "最终回答"}`；`tools` 保存工具名到函数的映射。
+
+```Python
+class ReActAgent:
+    def __init__(self, model, tools, max_steps=5):
+        self.model = model
+        self.tools = tools
+        self.max_steps = max_steps
+
+    def run(self, question):
+        messages = [{"role": "user", "content": question}]
+
+        for _ in range(self.max_steps):
+            # Reason：模型根据当前上下文决定回答，还是调用工具。
+            response = self.model(messages, tools=list(self.tools))
+            messages.append({"role": "assistant", "content": response})
+
+            if "answer" in response:
+                return response["answer"]
+
+            # Act：程序根据模型给出的名称和参数执行工具。
+            result = self.tools[response["tool"]](**response["args"])
+
+            # Observe：结果放回上下文，供下一轮模型调用使用。
+            messages.append({"role": "tool", "content": result})
+
+        return "达到最大步数，停止执行。"
 ```
 
 ### 传统算法相关手撕
