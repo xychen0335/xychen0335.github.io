@@ -1,12 +1,12 @@
-name: Deploy XYCHEN blog to GitHub Pages
+name: Self-heal XYCHEN blog deployment
 
+# 兜底：每天两次用最新 main 重新构建部署，覆盖"push 事件被 GitHub 丢弃"的情况。
+# 单独成文件是必须的：它含 schedule，会被 GitHub 当作 scheduled workflow，60 天
+# 仓库无活动后自动禁用。被禁时丢的只是兜底，deploy.yml（纯 push）不受影响。
 on:
-  workflow_dispatch:
   schedule:
-    # 定时自愈：每天部署最新 main，避免 push 事件被丢弃时站点长期停留在旧版本
+    # 北京时间 12:00 / 00:00
     - cron: '0 4,16 * * *'
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -14,8 +14,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  # 与 deploy.yml 分开，避免定时任务 cancel 掉正在进行的 push 部署
+  group: pages-self-heal
+  cancel-in-progress: false
 
 jobs:
   build:

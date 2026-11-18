@@ -59,14 +59,14 @@ npm run post:delete -- <slug> --yes
 https://xychen0335.github.io/
 ```
 
-`.github/workflows/pages.yml` 已经准备好自动构建配置。将代码推送到 `main` 并在 GitHub 的 Pages 设置中选择 GitHub Actions 后，推送会自动部署。
+`.github/workflows/deploy.yml` 已经准备好自动构建配置。将代码推送到 `main` 并在 GitHub 的 Pages 设置中选择 GitHub Actions 后，推送会自动部署。
 
 ### 手动触发部署
 
 正常情况下推送到 `main` 会自动构建并部署。如果推送后迟迟没有生效（例如 GitHub 服务故障期间 push 事件可能被丢弃、不触发工作流），可以手动触发一次：
 
 ```bash
-gh workflow run pages.yml --ref main
+gh workflow run deploy.yml --ref main
 gh run watch
 ```
 
@@ -78,4 +78,20 @@ curl -sI https://xychen0335.github.io/ | grep -i last-modified
 
 ### 定时自愈
 
-`pages.yml` 内置了定时任务（每天北京时间 12:00 与 00:00 各构建一次最新 `main`），即使某次 push 事件被 GitHub 丢弃，站点最迟也会在下一个定时点自动收敛到最新版本，无需人工介入。
+`self-heal.yml` 内置了定时任务（每天北京时间 12:00 与 00:00 各构建一次最新 `main`），即使某次 push 事件被 GitHub 丢弃，站点最迟也会在下一个定时点自动收敛到最新版本，无需人工介入。
+
+### 为什么部署要拆成两个 workflow
+
+GitHub 会把**任何含 `schedule` 触发器的 workflow** 整体视为 scheduled workflow，仓库 60 天无活动后自动标记 `disabled_inactivity`，而且**连 `push` 触发器一起禁用**。表现是推送成功、Actions 无任何 run、站点停在旧版本，没有任何报错。
+
+2026-11 就踩过这个坑：`pages.yml` 同时带 `push` 和 `schedule`，被禁用后 11-15 与 11-17 的提交全部没有部署。现在拆开：
+
+- `deploy.yml`：只有 `push` + `workflow_dispatch`，不含 schedule，因此永远不会因 inactivity 被禁用，这是主链路
+- `self-heal.yml`：只有 `schedule`，是兜底。它哪天被禁用，丢的只是自愈能力
+
+排查同类问题：
+
+```bash
+gh workflow list --all          # 看 state 是否 disabled_inactivity
+gh workflow enable <id>         # 重新启用
+```

@@ -1,0 +1,60 @@
+name: Deploy XYCHEN blog to GitHub Pages
+
+# 主链路：只由 push / 手动触发。
+# 注意：本文件刻意不含 schedule —— 含 schedule 的 workflow 会被 GitHub 判定为
+# "scheduled workflow"，60 天仓库无活动后自动 disabled_inactivity，把 push 触发
+# 一起禁用掉，表现为"推送成功但站点不更新"。定时自愈见 self-heal.yml。
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore file modification times from git
+        run: |
+          git ls-files -z | while IFS= read -r -d '' file; do
+            t=$(git log -1 --format=%ct -- "$file")
+            if [ -n "$t" ]; then touch -d "@$t" "$file"; fi
+          done
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build static site
+        run: npm run build
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
